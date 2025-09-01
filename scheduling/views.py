@@ -26,7 +26,7 @@ def get_events(request):
     start = request.GET.get('start')
     end = request.GET.get('end')
     department = request.GET.get('department')
-    assignee = request.GET.get('assignee')
+    assignees = request.GET.get('assignees')  # 여러 직원 지원
     
     schedules = Schedule.objects.select_related('department', 'assignee', 'creator').all()
     
@@ -40,9 +40,11 @@ def get_events(request):
     if department and department != 'all':
         schedules = schedules.filter(department__display_name=department)
     
-    # 담당자별 필터
-    if assignee and assignee != 'all':
-        schedules = schedules.filter(assignee__username=assignee)
+    # 담당자별 필터 (여러 직원 지원)
+    if assignees and assignees != 'all':
+        assignee_list = [username.strip() for username in assignees.split(',') if username.strip()]
+        if assignee_list:
+            schedules = schedules.filter(assignee__username__in=assignee_list)
     
     events = []
     for schedule in schedules:
