@@ -183,7 +183,7 @@
                         </div>
                     </div>
                     <div class="ml-6 h-6 w-px bg-gray-300 dark:bg-white/10"></div>
-                    <button type="button" id="addEventBtn" class="ml-6 rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 dark:bg-indigo-500 dark:shadow-none dark:hover:bg-indigo-400 dark:focus-visible:outline-indigo-500">일정 추가</button>
+                    <a href="{% url 'scheduling:add_schedule_view' %}" class="ml-6 rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 dark:bg-indigo-500 dark:shadow-none dark:hover:bg-indigo-400 dark:focus-visible:outline-indigo-500 no-underline inline-block">일정 추가</a>
                 </div>
             </div>
         </header>
@@ -472,11 +472,6 @@ document.addEventListener('DOMContentLoaded', function() {
     function loadEvents() {
         const activeTab = getCurrentDepartmentTab();
         const checkedEmployees = getCheckedEmployees();
-        console.log('loadEvents 호출됨:', {
-            activeTab,
-            checkedEmployees,
-            checkedEmployeesCount: checkedEmployees.length
-        });
         
         const year = currentDate.getFullYear();
         const month = currentDate.getMonth();
@@ -514,14 +509,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         const finalUrl = `{% url "scheduling:api_events" %}?${params}`;
-        console.log('월간보기 최종 URL:', finalUrl);
-        console.log('월간보기 필터 파라미터:', {
-            activeTab: activeTab,
-            mappedDepartment: mappedDepartment,
-            assignees: checkedEmployees,
-            assigneesString: checkedEmployees.join(','),
-            params: Object.fromEntries(params)
-        });
         
         fetch(finalUrl)
             .then(response => {
@@ -532,30 +519,21 @@ document.addEventListener('DOMContentLoaded', function() {
                 return response.json();
             })
             .then(events => {
-                console.log('월간보기 서버에서 받은 데이터:', events);
-                console.log('월간보기 이벤트 타입:', typeof events, Array.isArray(events));
-                
                 calendarEvents = events;
                 renderEvents();
-                console.log('월간보기 이벤트 로드 완료:', events.length + '개');
             })
             .catch(error => {
-                console.error('월간보기 이벤트 로드 실패:', error);
-                console.error('에러 세부사항:', error.message);
+                console.error('일정 로드 실패:', error);
                 alert('일정을 불러올 수 없습니다: ' + error.message);
             });
     }
     
     // 이벤트 렌더링 함수
     function renderEvents() {
-        console.log('renderEvents 시작 - calendarEvents:', calendarEvents);
-        console.log('calendarEvents 길이:', calendarEvents ? calendarEvents.length : 'undefined');
-        
         // 모든 이벤트 카운터 초기화 (강제로 모든 카운트 요소 제거)
         document.querySelectorAll('#calendar-grid .event-count').forEach(counter => {
             counter.remove();
         });
-        console.log('기존 카운트 요소들 모두 제거 완료');
         
         // calendarEvents가 배열이 아닌 경우 처리
         if (!Array.isArray(calendarEvents)) {
@@ -565,11 +543,8 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // 날짜별 이벤트 카운트
         const eventCountByDate = {};
-        calendarEvents.forEach((event, index) => {
-            console.log(`이벤트 ${index}:`, event);
-            
+        calendarEvents.forEach((event) => {
             if (!event.start) {
-                console.warn(`이벤트 ${index}에 start 속성이 없습니다:`, event);
                 return;
             }
             
@@ -579,24 +554,20 @@ document.addEventListener('DOMContentLoaded', function() {
             const month = String(eventDate.getMonth() + 1).padStart(2, '0');
             const day = String(eventDate.getDate()).padStart(2, '0');
             const dateStr = `${year}-${month}-${day}`;
+            
             eventCountByDate[dateStr] = (eventCountByDate[dateStr] || 0) + 1;
         });
         
-        console.log('날짜별 이벤트 카운트:', eventCountByDate);
-        
         // 모든 날짜 셀에 카운트 또는 빈 공간 추가
         const allDayCells = document.querySelectorAll('#calendar-grid .calendar-day');
-        console.log('찾은 날짜 셀 개수:', allDayCells.length);
-        allDayCells.forEach((dayCell, index) => {
+        allDayCells.forEach((dayCell) => {
             const timeEl = dayCell.querySelector('time');
             if (!timeEl) {
-                console.log(`날짜 셀 ${index}에 time 요소 없음`);
                 return;
             }
             
             const dateStr = timeEl.getAttribute('datetime');
             const count = eventCountByDate[dateStr] || 0;
-            console.log(`날짜 ${dateStr}: ${count}건`);
             
             // 기존 카운트 표시 요소 제거 (모든 카운트 관련 요소)
             const existingCounts = dayCell.querySelectorAll('.event-count');
@@ -615,9 +586,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
                 
                 dayCell.appendChild(countEl);
-                console.log(`${dateStr}에 ${count}건 카운트 요소 DOM에 추가 완료`);
-            } else {
-                console.log(`${dateStr}에 일정 없음 - 카운트 요소 추가하지 않음`);
             }
         });
     }
@@ -960,13 +928,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         const result = Array.from(checkedBoxes).map(checkbox => checkbox.value);
-        
-        console.log('getCheckedEmployees 결과:', {
-            activeTab,
-            checkedBoxesCount: checkedBoxes.length,
-            result
-        });
-        
         return result;
     }
     
@@ -1025,7 +986,6 @@ document.addEventListener('DOMContentLoaded', function() {
         document.querySelectorAll('#calendar-grid .event-count').forEach(counter => {
             counter.remove();
         });
-        console.log('부서 변경으로 인한 카운트 초기화 완료');
         refreshCalendar();
     }
     
@@ -1046,7 +1006,6 @@ document.addEventListener('DOMContentLoaded', function() {
     // 직원 체크박스 변경 시 캘린더 새로고침
     document.addEventListener('change', function(e) {
         if (e.target.classList.contains('employee-checkbox')) {
-            console.log('직원 체크박스 변경됨:', e.target.value, e.target.checked);
             refreshCalendar();
         }
     });
@@ -1105,10 +1064,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     };
     
-    // 일정 추가 버튼
-    document.getElementById('addEventBtn').addEventListener('click', function() {
-        alert('일정 추가 기능은 곧 구현될 예정입니다.');
-    });
+    // 일정 추가 버튼 (이제 링크로 변경됨)
     
     // 수정/삭제 버튼
     document.getElementById('editEventBtn').addEventListener('click', function() {

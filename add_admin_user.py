@@ -9,6 +9,7 @@ os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'unsan_crm.settings')
 django.setup()
 
 from django.contrib.auth import get_user_model
+from scheduling.models import Department
 
 User = get_user_model()
 
@@ -22,6 +23,13 @@ def create_admin_user():
         print(f"사용자 {username}는 이미 존재합니다.")
         return
     
+    # 관리부서 객체 찾기
+    try:
+        admin_dept = Department.objects.get(name='admin')
+    except Department.DoesNotExist:
+        print("관리부서를 찾을 수 없습니다.")
+        return
+        
     user = User.objects.create_user(
         username=username,
         first_name='관리',
@@ -29,7 +37,7 @@ def create_admin_user():
         email='admin@unsan.co.kr',
         password='admin123',
         user_type='admin',
-        department='admin',
+        department=admin_dept,  # Department 객체로 할당
         position='시스템관리자',
         hire_date=date.today(),
         phone='010-0000-0000',

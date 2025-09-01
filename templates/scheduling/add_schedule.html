@@ -1,0 +1,549 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}일정 추가 - 운산자동차 CRM{% endblock %}
+
+{% block extra_head %}
+<style>
+.form-container {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.form-section {
+    background: white;
+    border-radius: 0.5rem;
+    padding: 1.5rem;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+    margin-bottom: 1.5rem;
+}
+
+.dark .form-section {
+    background: rgb(31 41 55);
+    box-shadow: 0 1px 3px 0 rgba(255, 255, 255, 0.1);
+}
+
+.form-group {
+    margin-bottom: 1rem;
+}
+
+.form-label {
+    display: block;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: rgb(55 65 81);
+    margin-bottom: 0.5rem;
+}
+
+.dark .form-label {
+    color: rgb(229 231 235);
+}
+
+.form-input {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid rgb(209 213 219);
+    border-radius: 0.375rem;
+    font-size: 0.875rem;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.form-input:focus {
+    outline: none;
+    border-color: rgb(99 102 241);
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+.dark .form-input {
+    background: rgb(55 65 81);
+    border-color: rgb(75 85 99);
+    color: rgb(229 231 235);
+}
+
+.dark .form-input:focus {
+    border-color: rgb(129 140 248);
+    box-shadow: 0 0 0 3px rgba(129, 140, 248, 0.1);
+}
+
+.btn-primary {
+    background-color: rgb(99 102 241);
+    color: white;
+    padding: 0.75rem 1.5rem;
+    border-radius: 0.375rem;
+    font-weight: 600;
+    border: none;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.btn-primary:hover {
+    background-color: rgb(79 70 229);
+}
+
+.btn-secondary {
+    background-color: rgb(107 114 128);
+    color: white;
+    padding: 0.75rem 1.5rem;
+    border-radius: 0.375rem;
+    font-weight: 600;
+    border: none;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    margin-right: 0.75rem;
+}
+
+.btn-secondary:hover {
+    background-color: rgb(75 85 99);
+}
+
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+}
+
+@media (max-width: 768px) {
+    .form-row {
+        grid-template-columns: 1fr;
+    }
+}
+
+.required {
+    color: rgb(239 68 68);
+}
+
+.form-error {
+    color: rgb(239 68 68);
+    font-size: 0.75rem;
+    margin-top: 0.25rem;
+}
+
+.success-message {
+    background-color: rgb(34 197 94);
+    color: white;
+    padding: 1rem;
+    border-radius: 0.375rem;
+    margin-bottom: 1rem;
+    display: none;
+}
+
+.error-message {
+    background-color: rgb(239 68 68);
+    color: white;
+    padding: 1rem;
+    border-radius: 0.375rem;
+    margin-bottom: 1rem;
+    display: none;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="form-container">
+    <!-- Header -->
+    <div class="mb-8">
+        <h1 class="text-3xl font-bold text-gray-900 dark:text-white">새 일정 추가</h1>
+        <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
+            새로운 일정을 등록하고 담당자를 지정합니다
+        </p>
+    </div>
+
+    <!-- Success/Error Messages -->
+    <div id="successMessage" class="success-message">
+        일정이 성공적으로 추가되었습니다!
+    </div>
+    <div id="errorMessage" class="error-message">
+        일정 추가 중 오류가 발생했습니다. 다시 시도해주세요.
+    </div>
+
+    <form id="addScheduleForm">
+        {% csrf_token %}
+        
+        <!-- 기본 정보 -->
+        <div class="form-section">
+            <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">기본 정보</h2>
+            
+            <div class="form-group">
+                <label class="form-label" for="title">제목 <span class="required">*</span></label>
+                <input type="text" id="title" name="title" class="form-input" required placeholder="일정 제목을 입력하세요">
+                <div class="form-error" id="title-error"></div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="description">설명</label>
+                <textarea id="description" name="description" class="form-input" rows="3" placeholder="일정에 대한 자세한 설명을 입력하세요"></textarea>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="location">장소</label>
+                <input type="text" id="location" name="location" class="form-input" placeholder="장소를 입력하세요 (예: 본사 회의실, 고객 현장)">
+            </div>
+        </div>
+
+        <!-- 일시 정보 -->
+        <div class="form-section">
+            <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">일시</h2>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label" for="start_date">시작 날짜 <span class="required">*</span></label>
+                    <input type="date" id="start_date" name="start_date" class="form-input" required>
+                    <div class="form-error" id="start_date-error"></div>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label" for="start_time">시작 시간 <span class="required">*</span></label>
+                    <select id="start_time" name="start_time" class="form-input" required>
+                        <option value="">시간을 선택하세요</option>
+                    </select>
+                    <div class="form-error" id="start_time-error"></div>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label" for="end_date">종료 날짜 <span class="required">*</span></label>
+                    <input type="date" id="end_date" name="end_date" class="form-input" required>
+                    <div class="form-error" id="end_date-error"></div>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label" for="end_time">종료 시간 <span class="required">*</span></label>
+                    <select id="end_time" name="end_time" class="form-input" required>
+                        <option value="">시간을 선택하세요</option>
+                    </select>
+                    <div class="form-error" id="end_time-error"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 담당자 정보 -->
+        <div class="form-section">
+            <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">담당자 및 부서</h2>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label" for="department">부서 <span class="required">*</span></label>
+                    <select id="department" name="department" class="form-input" required>
+                        <option value="">부서를 선택하세요</option>
+                        {% if current_user.is_superuser %}
+                            {% for dept in departments %}
+                                <option value="{{ dept.name }}">{{ dept.display_name }}</option>
+                            {% endfor %}
+                        {% elif managed_departments %}
+                            <!-- 부서 관리자: 관리하는 부서들만 -->
+                            {% for dept in managed_departments %}
+                                <option value="{{ dept.name }}">{{ dept.display_name }}</option>
+                            {% endfor %}
+                        {% else %}
+                            <!-- 일반 직원은 본인 부서만 -->
+                            {% if current_user.department %}
+                                <option value="{{ current_user.department.name }}" selected>{{ current_user.department.display_name }}</option>
+                            {% endif %}
+                        {% endif %}
+                    </select>
+                    <div class="form-error" id="department-error"></div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="assignee">담당자 <span class="required">*</span></label>
+                    <select id="assignee" name="assignee" class="form-input" required>
+                        {% if current_user.is_superuser or managed_departments %}
+                            <option value="">먼저 부서를 선택하세요</option>
+                        {% else %}
+                            <!-- 일반 직원은 본인만 선택 가능 -->
+                            <option value="{{ current_user.username }}" selected>{{ current_user.last_name }}{{ current_user.first_name }} ({{ current_user.position }})</option>
+                        {% endif %}
+                    </select>
+                    <div class="form-error" id="assignee-error"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 추가 정보 -->
+        <div class="form-section">
+            <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">추가 정보</h2>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label" for="priority">우선순위</label>
+                    <select id="priority" name="priority" class="form-input">
+                        <option value="normal">보통</option>
+                        <option value="low">낮음</option>
+                        <option value="high">높음</option>
+                        <option value="urgent">긴급</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="status">상태</label>
+                    <select id="status" name="status" class="form-input">
+                        <option value="pending">대기</option>
+                        <option value="confirmed">확인됨</option>
+                        <option value="completed">완료</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- 버튼 -->
+        <div class="flex justify-end space-x-3 pt-6">
+            <button type="button" id="cancelBtn" class="btn-secondary">취소</button>
+            <button type="submit" id="submitBtn" class="btn-primary">일정 추가</button>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('addScheduleForm');
+    const departmentSelect = document.getElementById('department');
+    const assigneeSelect = document.getElementById('assignee');
+    const cancelBtn = document.getElementById('cancelBtn');
+    const submitBtn = document.getElementById('submitBtn');
+
+    // 사용자 권한 체크 (superuser 또는 부서 관리자)
+    const isAdmin = {% if current_user.is_superuser or managed_departments %}true{% else %}false{% endif %};
+    
+    // 현재 사용자가 관리자인지 확인
+    
+    // 직원 데이터 (서버에서 받아온 데이터)
+    const employeesByDepartment = {
+        {% for dept in departments %}
+        '{{ dept.name }}': [
+            {% for employee in employees %}
+                {% if employee.department.name == dept.name %}
+                {
+                    username: '{{ employee.username }}',
+                    name: '{{ employee.last_name }}{{ employee.first_name }}',
+                    position: '{{ employee.position }}'
+                },
+                {% endif %}
+            {% endfor %}
+        ],
+        {% endfor %}
+    };
+
+    // 오늘 날짜를 기본값으로 설정
+    const today = new Date();
+    const todayStr = today.toISOString().split('T')[0];
+    document.getElementById('start_date').value = todayStr;
+    document.getElementById('end_date').value = todayStr;
+    
+    // 30분 단위 시간 옵션 생성
+    function generateTimeOptions(selectElement) {
+        selectElement.innerHTML = '<option value="">시간을 선택하세요</option>';
+        
+        for (let hour = 0; hour < 24; hour++) {
+            for (let minute = 0; minute < 60; minute += 30) {
+                const timeValue = String(hour).padStart(2, '0') + ':' + String(minute).padStart(2, '0');
+                const option = document.createElement('option');
+                option.value = timeValue;
+                option.textContent = timeValue;
+                selectElement.appendChild(option);
+            }
+        }
+    }
+    
+    // 시간 선택 박스 초기화
+    const startTimeSelect = document.getElementById('start_time');
+    const endTimeSelect = document.getElementById('end_time');
+    
+    generateTimeOptions(startTimeSelect);
+    generateTimeOptions(endTimeSelect);
+    
+    // 현재 시간 + 1시간을 기본값으로 설정 (30분 단위로 반올림)
+    const now = new Date();
+    const currentHour = now.getHours();
+    const currentMinute = Math.ceil((now.getMinutes() + 60) / 30) * 30; // 1시간 후 + 30분 단위 반올림
+    
+    let startHour = currentHour;
+    let startMinute = currentMinute;
+    
+    if (startMinute >= 60) {
+        startHour += 1;
+        startMinute = 0;
+    }
+    if (startHour >= 24) {
+        startHour = 0;
+    }
+    
+    const defaultStartTime = String(startHour).padStart(2, '0') + ':' + String(startMinute).padStart(2, '0');
+    
+    // 종료 시간은 시작 시간 + 1시간
+    let endHour = startHour + 1;
+    let endMinute = startMinute;
+    
+    if (endHour >= 24) {
+        endHour = 0;
+    }
+    
+    const defaultEndTime = String(endHour).padStart(2, '0') + ':' + String(endMinute).padStart(2, '0');
+    
+    // 기본값 설정
+    startTimeSelect.value = defaultStartTime;
+    endTimeSelect.value = defaultEndTime;
+
+    // 부서 변경 시 담당자 목록 업데이트 (관리자만)
+    if (isAdmin) {
+        departmentSelect.addEventListener('change', function() {
+            const selectedDept = this.value;
+            assigneeSelect.innerHTML = '<option value="">담당자를 선택하세요</option>';
+            
+            if (selectedDept && employeesByDepartment[selectedDept]) {
+                employeesByDepartment[selectedDept].forEach(employee => {
+                    const option = document.createElement('option');
+                    option.value = employee.username;
+                    option.textContent = `${employee.name} (${employee.position})`;
+                    assigneeSelect.appendChild(option);
+                });
+            }
+        });
+    } else {
+        // 일반 직원은 부서와 담당자 변경 불가
+        departmentSelect.disabled = true;
+        assigneeSelect.disabled = true;
+    }
+
+    // 취소 버튼
+    cancelBtn.addEventListener('click', function() {
+        if (confirm('작성 중인 내용이 사라집니다. 취소하시겠습니까?')) {
+            window.location.href = '{% url "scheduling:calendar" %}';
+        }
+    });
+
+    // 폼 제출
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        // 기본 유효성 검사
+        if (!validateForm()) {
+            return;
+        }
+
+        submitBtn.disabled = true;
+        submitBtn.textContent = '추가 중...';
+
+        // 폼 데이터 수집
+        const formData = new FormData(form);
+        
+        // 일시 조합
+        const startDateTime = formData.get('start_date') + 'T' + formData.get('start_time');
+        const endDateTime = formData.get('end_date') + 'T' + formData.get('end_time');
+
+        const scheduleData = {
+            title: formData.get('title'),
+            description: formData.get('description'),
+            location: formData.get('location'),
+            start_datetime: startDateTime,
+            end_datetime: endDateTime,
+            department: formData.get('department'),
+            assignee: formData.get('assignee'),
+            priority: formData.get('priority'),
+            status: formData.get('status'),
+            csrfmiddlewaretoken: formData.get('csrfmiddlewaretoken')
+        };
+
+        console.log('일정 추가 요청:', {
+            title: scheduleData.title,
+            start: scheduleData.start_datetime,
+            department: scheduleData.department,
+            assignee: scheduleData.assignee
+        });
+
+        // API 호출
+        fetch('{% url "scheduling:add_schedule" %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': formData.get('csrfmiddlewaretoken')
+            },
+            body: JSON.stringify(scheduleData)
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                console.log('일정 추가 성공:', data);
+                showSuccessMessage();
+                setTimeout(() => {
+                    window.location.href = '{% url "scheduling:calendar" %}';
+                }, 2000);
+            } else {
+                console.error('일정 추가 실패:', data);
+                showErrorMessage(data.message || '일정 추가 중 오류가 발생했습니다.');
+                submitBtn.disabled = false;
+                submitBtn.textContent = '일정 추가';
+            }
+        })
+        .catch(error => {
+            console.error('일정 추가 오류:', error);
+            showErrorMessage('서버 통신 중 오류가 발생했습니다.');
+            submitBtn.disabled = false;
+            submitBtn.textContent = '일정 추가';
+        });
+    });
+
+    function validateForm() {
+        clearErrors();
+        let isValid = true;
+
+        // 필수 필드 검사
+        const requiredFields = ['title', 'start_date', 'start_time', 'end_date', 'end_time', 'department', 'assignee'];
+        
+        requiredFields.forEach(fieldName => {
+            const field = document.getElementById(fieldName);
+            if (!field.value.trim()) {
+                showFieldError(fieldName, '필수 항목입니다.');
+                isValid = false;
+            }
+        });
+
+        // 일시 검증
+        const startDate = document.getElementById('start_date').value;
+        const startTime = document.getElementById('start_time').value;
+        const endDate = document.getElementById('end_date').value;
+        const endTime = document.getElementById('end_time').value;
+
+        if (startDate && startTime && endDate && endTime) {
+            const startDateTime = new Date(startDate + 'T' + startTime);
+            const endDateTime = new Date(endDate + 'T' + endTime);
+
+            if (endDateTime <= startDateTime) {
+                showFieldError('end_date', '종료 일시는 시작 일시보다 늦어야 합니다.');
+                showFieldError('end_time', '종료 일시는 시작 일시보다 늦어야 합니다.');
+                isValid = false;
+            }
+        }
+
+        return isValid;
+    }
+
+    function showFieldError(fieldName, message) {
+        const errorElement = document.getElementById(fieldName + '-error');
+        if (errorElement) {
+            errorElement.textContent = message;
+        }
+    }
+
+    function clearErrors() {
+        document.querySelectorAll('.form-error').forEach(element => {
+            element.textContent = '';
+        });
+    }
+
+    function showSuccessMessage() {
+        document.getElementById('successMessage').style.display = 'block';
+        document.getElementById('errorMessage').style.display = 'none';
+    }
+
+    function showErrorMessage(message) {
+        const errorElement = document.getElementById('errorMessage');
+        errorElement.textContent = message;
+        errorElement.style.display = 'block';
+        document.getElementById('successMessage').style.display = 'none';
+    }
+});
+</script>
+{% endblock %}

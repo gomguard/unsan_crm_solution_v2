@@ -11,7 +11,7 @@ class User(AbstractUser):
     
     user_type = models.CharField(max_length=10, choices=USER_TYPES, default='employee')
     phone = models.CharField(max_length=20, blank=True)
-    department = models.CharField(max_length=50, blank=True)  # 직원용
+    department = models.ForeignKey('scheduling.Department', on_delete=models.SET_NULL, null=True, blank=True, verbose_name='부서')  # ForeignKey로 변경
     position = models.CharField(max_length=50, blank=True)    # 직원용
     hire_date = models.DateField(null=True, blank=True)       # 직원용
     is_active_employee = models.BooleanField(default=True)    # 퇴사 여부

@@ -77,6 +77,13 @@ def create_sample_users():
         # 입사일을 랜덤하게 설정 (최근 2년 내)
         hire_date = date.today() - timedelta(days=timezone.now().day % 730)
         
+        # 부서 객체 찾기
+        try:
+            department_obj = Department.objects.get(name=user_data['department'])
+        except Department.DoesNotExist:
+            print(f"부서 '{user_data['department']}'를 찾을 수 없습니다. 사용자 {username} 생성을 건너뜁니다.")
+            continue
+        
         user = User.objects.create_user(
             username=username,
             first_name=user_data['first_name'],
@@ -84,7 +91,7 @@ def create_sample_users():
             email=f"{username}@unsan.co.kr",
             password='unsan1234',  # 임시 비밀번호
             user_type='admin' if user_data.get('is_superuser') else 'employee',
-            department=user_data['department'],
+            department=department_obj,  # Department 객체로 할당
             position=user_data['position'],
             hire_date=hire_date,
             phone=f"010-{1000 + created_count:04d}-{5678}",
@@ -109,7 +116,7 @@ def create_sample_users():
     print(f"\n총 {created_count}명의 사용자가 생성되었습니다.")
     print("\n부서별 인원:")
     for dept in Department.objects.all():
-        count = User.objects.filter(department=dept.name).count()
+        count = User.objects.filter(department=dept).count()
         manager_name = f" (관리자: {dept.manager.last_name}{dept.manager.first_name})" if dept.manager else ""
         print(f"- {dept.display_name}: {count}명{manager_name}")
     

@@ -55,34 +55,37 @@ def create_sample_schedules():
     }
     
     created_count = 0
-    target_count = 120  # 9월 전체 월에 120개 일정
+    target_count = 80  # 8월에 80개 일정
     
-    # 2025년 9월 전체
-    start_date = datetime(2025, 9, 1).date()
-    end_date = datetime(2025, 9, 30).date()
+    # 2025년 8월 전체
+    start_date = datetime(2025, 8, 1).date()
+    end_date = datetime(2025, 8, 31).date()
     
     print(f"일정 생성 기간: {start_date} ~ {end_date}")
     
-    # 120개의 일정을 9월 30일에 고르게 분배
+    # 80개의 일정을 8월 31일에 고르게 분배
     for i in range(target_count):
         # 랜덤 사용자 선택
         user = random.choice(users)
-        user_dept = user.department
+        
+        # user.department가 None이면 건너뛰기
+        if not user.department:
+            continue
+            
+        user_dept = user.department.name  # ForeignKey이므로 .name으로 접근
         
         if user_dept not in schedule_templates:
             continue
             
-        try:
-            department_obj = departments[user_dept]
-        except KeyError:
-            continue
+        # 부서 객체는 user.department를 그대로 사용
+        department_obj = user.department
         
         # 랜덤한 일정 템플릿 선택
         template = random.choice(schedule_templates[user_dept])
         
-        # 9월 1일부터 30일까지 랜덤하게 분배 (평일에 더 많이)
-        days_in_september = (end_date - start_date).days + 1
-        random_day_offset = random.randint(0, days_in_september - 1)
+        # 8월 1일부터 31일까지 랜덤하게 분배 (평일에 더 많이)
+        days_in_month = (end_date - start_date).days + 1
+        random_day_offset = random.randint(0, days_in_month - 1)
         schedule_date = start_date + timedelta(days=random_day_offset)
         
         # 주말인지 평일인지 확인 (월요일=0, 일요일=6)
