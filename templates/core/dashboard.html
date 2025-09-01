@@ -1,0 +1,146 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}메인 대시보드 - 운산자동차 CRM{% endblock %}
+
+{% block content %}
+<div>
+    <!-- Main content -->
+    <div>
+            <!-- Welcome header -->
+            <div class="mb-8">
+                <h1 class="text-3xl font-bold text-gray-900 dark:text-white">
+                    MAIN
+                </h1>
+                <p class="mt-2 text-lg text-gray-600 dark:text-gray-400">
+                    안녕하세요, <span class="font-semibold text-blue-600 dark:text-blue-400">{{ user.username }}</span>님!
+                </p>
+            </div>
+
+            <!-- Temporary main page content -->
+            <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-6 mb-8">
+                <div class="text-center">
+                    <div class="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-blue-100 dark:bg-blue-900 mb-4">
+                        <svg class="h-8 w-8 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-4m-5 0H3m2 0v-3.5a2 2 0 011-1.732l.5-.289a2 2 0 011 0l.5.289a2 2 0 011 1.732V21M9 7h1m-1 4h1m4-4h1m-1 4h1"></path>
+                        </svg>
+                    </div>
+                    
+                    <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+                        임시 메인 페이지
+                    </h2>
+                    
+                    <p class="text-gray-600 dark:text-gray-400 mb-6">
+                        향후 사용자 역할에 따라 맞춤형 대시보드가 표시됩니다
+                    </p>
+
+                    <!-- User info -->
+                    <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 mb-6">
+                        <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-3">현재 사용자 정보</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                            <div>
+                                <span class="text-gray-500 dark:text-gray-400">사용자명:</span>
+                                <span class="ml-2 font-medium text-gray-900 dark:text-white">{{ user.username }}</span>
+                            </div>
+                            <div>
+                                <span class="text-gray-500 dark:text-gray-400">이메일:</span>
+                                <span class="ml-2 font-medium text-gray-900 dark:text-white">{{ user.email|default:"설정되지 않음" }}</span>
+                            </div>
+                            <div>
+                                <span class="text-gray-500 dark:text-gray-400">관리자 권한:</span>
+                                <span class="ml-2 font-medium {% if is_superuser %}text-green-600 dark:text-green-400{% else %}text-gray-600 dark:text-gray-400{% endif %}">
+                                    {{ is_superuser|yesno:"예,아니오" }}
+                                </span>
+                            </div>
+                            <div>
+                                <span class="text-gray-500 dark:text-gray-400">그룹:</span>
+                                <span class="ml-2 font-medium text-gray-900 dark:text-white">
+                                    {% if user_groups %}
+                                        {% for group in user_groups %}{{ group.name }}{% if not forloop.last %}, {% endif %}{% endfor %}
+                                    {% else %}
+                                        없음
+                                    {% endif %}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Future dashboard types -->
+                    <div class="text-left">
+                        <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-3">향후 직군별 대시보드</h3>
+                        <ul class="space-y-2 text-sm text-gray-600 dark:text-gray-400">
+                            <li class="flex items-center">
+                                <span class="w-2 h-2 bg-blue-500 rounded-full mr-3"></span>
+                                <strong>총관리자:</strong> 전체 현황, 매출 분석, 직원 관리
+                            </li>
+                            <li class="flex items-center">
+                                <span class="w-2 h-2 bg-green-500 rounded-full mr-3"></span>
+                                <strong>콜직원:</strong> 해피콜 목록, 고객 상담 이력, 콜 스케줄
+                            </li>
+                            <li class="flex items-center">
+                                <span class="w-2 h-2 bg-yellow-500 rounded-full mr-3"></span>
+                                <strong>검사접수직원:</strong> 차량 검사 예약, 접수 현황, 검사 스케줄
+                            </li>
+                            <li class="flex items-center">
+                                <span class="w-2 h-2 bg-purple-500 rounded-full mr-3"></span>
+                                <strong>일반직원:</strong> 개인 업무 현황, 기본 고객 정보
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick actions -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <a href="/admin/" class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow hover:shadow-md transition-shadow">
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0">
+                            <div class="flex items-center justify-center h-10 w-10 rounded-md bg-blue-500 text-white">
+                                <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                </svg>
+                            </div>
+                        </div>
+                        <div class="ml-4">
+                            <h3 class="text-lg font-medium text-gray-900 dark:text-white">관리자 페이지</h3>
+                            <p class="text-sm text-gray-500 dark:text-gray-400">시스템 관리 및 설정</p>
+                        </div>
+                    </div>
+                </a>
+
+                <a href="/customers/" class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow hover:shadow-md transition-shadow">
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0">
+                            <div class="flex items-center justify-center h-10 w-10 rounded-md bg-green-500 text-white">
+                                <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z"></path>
+                                </svg>
+                            </div>
+                        </div>
+                        <div class="ml-4">
+                            <h3 class="text-lg font-medium text-gray-900 dark:text-white">고객관리</h3>
+                            <p class="text-sm text-gray-500 dark:text-gray-400">고객 정보 및 관리</p>
+                        </div>
+                    </div>
+                </a>
+
+                <div class="bg-gray-100 dark:bg-gray-700 p-6 rounded-lg">
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0">
+                            <div class="flex items-center justify-center h-10 w-10 rounded-md bg-gray-400 text-white">
+                                <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4"></path>
+                                </svg>
+                            </div>
+                        </div>
+                        <div class="ml-4">
+                            <h3 class="text-lg font-medium text-gray-500 dark:text-gray-400">기타 기능</h3>
+                            <p class="text-sm text-gray-400 dark:text-gray-500">개발 예정</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+    </div>
+</div>
+{% endblock %}

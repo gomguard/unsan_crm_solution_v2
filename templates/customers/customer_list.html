@@ -1,0 +1,294 @@
+{% extends 'base.html' %}
+
+{% block title %}고객관리 - 운산자동차 CRM{% endblock %}
+{% block page_title %}고객관리{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- 헤더 섹션 -->
+    <div class="sm:flex sm:items-center sm:justify-between">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-900 dark:text-white">고객관리</h1>
+            <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
+                총 {{ total_customers }}명의 고객이 등록되어 있습니다.
+            </p>
+        </div>
+        <div class="mt-4 sm:mt-0">
+            <a href="{% url 'customers:customer_create' %}" 
+               class="inline-flex items-center gap-x-2 rounded-md bg-indigo-600 px-3.5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">
+                <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 5v14m-7-7h14" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                신규 고객 등록
+            </a>
+        </div>
+    </div>
+
+    <!-- 통계 카드 -->
+    <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <div class="bg-white dark:bg-gray-800 overflow-hidden shadow rounded-lg">
+            <div class="p-5">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <svg class="h-6 w-6 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                            <circle cx="9" cy="7" r="4"/>
+                            <path d="m22 21-3-3m0 0a2 2 0 1 0-4-4 2 2 0 0 0 4 4z"/>
+                        </svg>
+                    </div>
+                    <div class="ml-5 w-0 flex-1">
+                        <dl>
+                            <dt class="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">총 고객수</dt>
+                            <dd class="text-lg font-medium text-gray-900 dark:text-white">{{ total_customers }}명</dd>
+                        </dl>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white dark:bg-gray-800 overflow-hidden shadow rounded-lg">
+            <div class="p-5">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <svg class="h-6 w-6 text-yellow-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="m9 12 2 2 4-4"/>
+                            <path d="M21 12c.552 0 1.005-.449.95-.998a10 10 0 1 0-8.953 8.953c.549-.055.998-.398.998-.95"/>
+                        </svg>
+                    </div>
+                    <div class="ml-5 w-0 flex-1">
+                        <dl>
+                            <dt class="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">VIP 고객</dt>
+                            <dd class="text-lg font-medium text-gray-900 dark:text-white">{{ vip_customers }}명</dd>
+                        </dl>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white dark:bg-gray-800 overflow-hidden shadow rounded-lg">
+            <div class="p-5">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <svg class="h-6 w-6 text-blue-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+                            <circle cx="9" cy="7" r="4"/>
+                            <path d="m22 21-3-3m0 0a2 2 0 1 0-4-4 2 2 0 0 0 4 4z"/>
+                        </svg>
+                    </div>
+                    <div class="ml-5 w-0 flex-1">
+                        <dl>
+                            <dt class="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">법인 고객</dt>
+                            <dd class="text-lg font-medium text-gray-900 dark:text-white">{{ corporate_customers }}명</dd>
+                        </dl>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 필터 및 검색 -->
+    <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
+        <form method="GET" class="space-y-4">
+            <div class="grid grid-cols-1 gap-4 sm:grid-cols-5">
+                <!-- 검색 -->
+                <div class="sm:col-span-2">
+                    <label for="search" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">검색</label>
+                    <input type="text" 
+                           id="search" 
+                           name="search" 
+                           value="{{ search_query }}" 
+                           placeholder="고객명, 전화번호, 이메일, 회사명 검색"
+                           class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white sm:text-sm">
+                </div>
+
+                <!-- 고객구분 -->
+                <div>
+                    <label for="customer_type" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">고객구분</label>
+                    <select id="customer_type" 
+                            name="customer_type" 
+                            class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white sm:text-sm">
+                        <option value="">전체</option>
+                        <option value="individual" {% if customer_type_filter == 'individual' %}selected{% endif %}>개인</option>
+                        <option value="corporate" {% if customer_type_filter == 'corporate' %}selected{% endif %}>법인</option>
+                    </select>
+                </div>
+
+                <!-- VIP 레벨 -->
+                <div>
+                    <label for="vip_level" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">VIP 레벨</label>
+                    <select id="vip_level" 
+                            name="vip_level" 
+                            class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white sm:text-sm">
+                        <option value="">전체</option>
+                        <option value="0" {% if vip_level_filter == '0' %}selected{% endif %}>일반</option>
+                        <option value="1" {% if vip_level_filter == '1' %}selected{% endif %}>VIP</option>
+                        <option value="2" {% if vip_level_filter == '2' %}selected{% endif %}>VVIP</option>
+                    </select>
+                </div>
+
+                <!-- 성별 -->
+                <div>
+                    <label for="gender" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">성별</label>
+                    <select id="gender" 
+                            name="gender" 
+                            class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white sm:text-sm">
+                        <option value="">전체</option>
+                        <option value="M" {% if gender_filter == 'M' %}selected{% endif %}>남성</option>
+                        <option value="F" {% if gender_filter == 'F' %}selected{% endif %}>여성</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="flex items-center justify-between">
+                <div class="flex space-x-2">
+                    <button type="submit" 
+                            class="inline-flex items-center gap-x-2 rounded-md bg-gray-600 px-3.5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-gray-500">
+                        <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="11" cy="11" r="8"/>
+                            <path d="M21 21l-4.35-4.35"/>
+                        </svg>
+                        검색
+                    </button>
+                    <a href="{% url 'customers:customer_list' %}" 
+                       class="inline-flex items-center gap-x-2 rounded-md border border-gray-300 bg-white px-3.5 py-2.5 text-sm font-semibold text-gray-900 shadow-sm hover:bg-gray-50 dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:hover:bg-gray-600">
+                        초기화
+                    </a>
+                </div>
+
+                <!-- 정렬 -->
+                <div class="flex items-center space-x-2">
+                    <label for="ordering" class="text-sm font-medium text-gray-700 dark:text-gray-300">정렬:</label>
+                    <select id="ordering" 
+                            name="ordering" 
+                            onchange="this.form.submit()"
+                            class="rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white text-sm">
+                        <option value="-created_at" {% if ordering == '-created_at' %}selected{% endif %}>최신순</option>
+                        <option value="created_at" {% if ordering == 'created_at' %}selected{% endif %}>등록순</option>
+                        <option value="name" {% if ordering == 'name' %}selected{% endif %}>이름순</option>
+                        <option value="-vip_level" {% if ordering == '-vip_level' %}selected{% endif %}>VIP순</option>
+                    </select>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- 고객 목록 -->
+    <div class="bg-white dark:bg-gray-800 shadow overflow-hidden sm:rounded-md">
+        <ul role="list" class="divide-y divide-gray-200 dark:divide-gray-700">
+            {% for customer in customers %}
+            <li class="px-6 py-4 hover:bg-gray-50 dark:hover:bg-gray-700">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0">
+                            <div class="h-10 w-10 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center">
+                                <span class="text-sm font-medium text-gray-700 dark:text-gray-300">
+                                    {{ customer.name.0 }}
+                                </span>
+                            </div>
+                        </div>
+                        <div class="ml-4">
+                            <div class="flex items-center space-x-3">
+                                <div class="text-sm font-medium text-gray-900 dark:text-white">
+                                    <a href="{{ customer.get_absolute_url }}" class="hover:text-indigo-600 dark:hover:text-indigo-400">
+                                        {{ customer.name }}
+                                    </a>
+                                </div>
+                                
+                                <!-- VIP 배지 -->
+                                {% if customer.vip_level > 0 %}
+                                <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium {% if customer.vip_level == 2 %}bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200{% else %}bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200{% endif %}">
+                                    {{ customer.get_vip_level_display_korean }}
+                                </span>
+                                {% endif %}
+                                
+                                <!-- 고객구분 배지 -->
+                                {% if customer.customer_type == 'corporate' %}
+                                <span class="inline-flex items-center rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-medium text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+                                    법인
+                                </span>
+                                {% endif %}
+                            </div>
+                            <div class="text-sm text-gray-500 dark:text-gray-400 space-y-1">
+                                <div>{{ customer.phone }}</div>
+                                {% if customer.email %}
+                                <div>{{ customer.email }}</div>
+                                {% endif %}
+                                {% if customer.company_name %}
+                                <div>{{ customer.company_name }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-center space-x-2">
+                        <div class="text-right text-sm text-gray-500 dark:text-gray-400">
+                            <div>{{ customer.created_at|date:"Y.m.d" }}</div>
+                            {% if customer.birth_date and customer.get_age %}
+                            <div>{{ customer.get_age }}세</div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="flex items-center space-x-1">
+                            <a href="{{ customer.get_absolute_url }}" 
+                               class="text-gray-400 hover:text-gray-500 dark:text-gray-500 dark:hover:text-gray-400">
+                                <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                                    <circle cx="12" cy="12" r="3"/>
+                                </svg>
+                            </a>
+                            <a href="{% url 'customers:customer_edit' customer.pk %}" 
+                               class="text-gray-400 hover:text-gray-500 dark:text-gray-500 dark:hover:text-gray-400">
+                                <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                                    <path d="m18.5 2.5 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                                </svg>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </li>
+            {% empty %}
+            <li class="px-6 py-12 text-center">
+                <div class="text-sm text-gray-500 dark:text-gray-400">
+                    {% if search_query %}
+                    검색 조건에 맞는 고객이 없습니다.
+                    {% else %}
+                    등록된 고객이 없습니다.
+                    {% endif %}
+                </div>
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+
+    <!-- 페이지네이션 -->
+    {% if is_paginated %}
+    <nav class="flex items-center justify-between border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 py-3 sm:px-6 rounded-lg shadow">
+        <div class="hidden sm:block">
+            <p class="text-sm text-gray-700 dark:text-gray-300">
+                <span class="font-medium">{{ page_obj.start_index }}</span>
+                -
+                <span class="font-medium">{{ page_obj.end_index }}</span>
+                of
+                <span class="font-medium">{{ paginator.count }}</span>
+                results
+            </p>
+        </div>
+        <div class="flex flex-1 justify-between sm:justify-end space-x-3">
+            {% if page_obj.has_previous %}
+                <a href="?{{ request.GET.urlencode }}&page={{ page_obj.previous_page_number }}" 
+                   class="relative inline-flex items-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 dark:bg-gray-700 dark:text-white dark:ring-gray-600 dark:hover:bg-gray-600">
+                    이전
+                </a>
+            {% endif %}
+            {% if page_obj.has_next %}
+                <a href="?{{ request.GET.urlencode }}&page={{ page_obj.next_page_number }}" 
+                   class="relative ml-3 inline-flex items-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 dark:bg-gray-700 dark:text-white dark:ring-gray-600 dark:hover:bg-gray-600">
+                    다음
+                </a>
+            {% endif %}
+        </div>
+    </nav>
+    {% endif %}
+</div>
+{% endblock %}
