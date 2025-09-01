@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}일정 추가 - 운산자동차 CRM{% endblock %}
+{% block title %}{% if edit_schedule %}일정 수정{% else %}일정 추가{% endif %} - 운산자동차 CRM{% endblock %}
 
 {% block extra_head %}
 <style>
@@ -142,7 +142,7 @@
 <div class="form-container">
     <!-- Header -->
     <div class="mb-8">
-        <h1 class="text-3xl font-bold text-gray-900 dark:text-white">새 일정 추가</h1>
+        <h1 class="text-3xl font-bold text-gray-900 dark:text-white">{% if edit_schedule %}일정 수정{% else %}새 일정 추가{% endif %}</h1>
         <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
             새로운 일정을 등록하고 담당자를 지정합니다
         </p>
@@ -289,7 +289,7 @@
         <!-- 버튼 -->
         <div class="flex justify-end space-x-3 pt-6">
             <button type="button" id="cancelBtn" class="btn-secondary">취소</button>
-            <button type="submit" id="submitBtn" class="btn-primary">일정 추가</button>
+            <button type="submit" id="submitBtn" class="btn-primary">{% if edit_schedule %}일정 수정{% else %}일정 추가{% endif %}</button>
         </div>
     </form>
 </div>
@@ -325,8 +325,24 @@ document.addEventListener('DOMContentLoaded', function() {
         ],
         {% endfor %}
     };
+    
+    // 수정 모드 확인
+    const editSchedule = {% if edit_schedule %}
+    {
+        id: {{ edit_schedule.id }},
+        title: '{{ edit_schedule.title }}',
+        description: '{{ edit_schedule.description }}',
+        location: '{{ edit_schedule.location }}',
+        start_datetime: '{{ edit_schedule.start_datetime|date:"Y-m-d\TH:i" }}',
+        end_datetime: '{{ edit_schedule.end_datetime|date:"Y-m-d\TH:i" }}',
+        department: '{{ edit_schedule.department.name }}',
+        assignee: '{{ edit_schedule.assignee.username }}',
+        priority: '{{ edit_schedule.priority }}',
+        status: '{{ edit_schedule.status }}'
+    }
+    {% else %}null{% endif %};
 
-    // 오늘 날짜를 기본값으로 설정
+    // 먼저 오늘 날짜를 기본값으로 설정 (수정 모드에서도 나중에 덮어쓸 예정)
     const today = new Date();
     const todayStr = today.toISOString().split('T')[0];
     document.getElementById('start_date').value = todayStr;
@@ -382,25 +398,72 @@ document.addEventListener('DOMContentLoaded', function() {
     
     const defaultEndTime = String(endHour).padStart(2, '0') + ':' + String(endMinute).padStart(2, '0');
     
-    // 기본값 설정
-    startTimeSelect.value = defaultStartTime;
-    endTimeSelect.value = defaultEndTime;
+    // 기본값 설정 (수정 모드가 아닐 때만)
+    if (!editSchedule) {
+        startTimeSelect.value = defaultStartTime;
+        endTimeSelect.value = defaultEndTime;
+    }
+    
+    // 수정 모드일 때 기존 값 채워넣기
+    if (editSchedule) {
+        console.log('수정 모드 데이터 설정:', editSchedule);
+        
+        // 기본 정보 설정
+        document.getElementById('title').value = editSchedule.title;
+        document.getElementById('description').value = editSchedule.description;
+        document.getElementById('location').value = editSchedule.location;
+        document.getElementById('priority').value = editSchedule.priority;
+        document.getElementById('status').value = editSchedule.status;
+        
+        // 날짜 설정
+        document.getElementById('start_date').value = editSchedule.start_datetime.split('T')[0];
+        document.getElementById('end_date').value = editSchedule.end_datetime.split('T')[0];
+        
+        // 시간 설정 (시간 옵션이 이미 생성된 후)
+        const startTime = editSchedule.start_datetime.split('T')[1].substring(0, 5); // HH:MM 형태로 자르기
+        const endTime = editSchedule.end_datetime.split('T')[1].substring(0, 5);
+        
+        console.log('설정할 시간:', { startTime, endTime });
+        startTimeSelect.value = startTime;
+        endTimeSelect.value = endTime;
+        
+        // 부서 선택
+        document.getElementById('department').value = editSchedule.department;
+        // 부서 변경 이벤트 트리거
+        updateAssigneeOptions();
+        
+        // 담당자 선택 (옵션 생성 완료 후 설정)
+        const checkAssigneeReady = (attempts = 0) => {
+            const assigneeSelect = document.getElementById('assignee');
+            const targetOption = Array.from(assigneeSelect.options).find(opt => opt.value === editSchedule.assignee);
+            
+            if (targetOption || attempts > 10) {
+                assigneeSelect.value = editSchedule.assignee;
+            } else {
+                setTimeout(() => checkAssigneeReady(attempts + 1), 50);
+            }
+        };
+        checkAssigneeReady();
+    }
 
+    // 담당자 옵션 업데이트 함수
+    function updateAssigneeOptions() {
+        const selectedDept = departmentSelect.value;
+        assigneeSelect.innerHTML = '<option value="">담당자를 선택하세요</option>';
+        
+        if (selectedDept && employeesByDepartment[selectedDept]) {
+            employeesByDepartment[selectedDept].forEach(employee => {
+                const option = document.createElement('option');
+                option.value = employee.username;
+                option.textContent = `${employee.name} (${employee.position})`;
+                assigneeSelect.appendChild(option);
+            });
+        }
+    }
+    
     // 부서 변경 시 담당자 목록 업데이트 (관리자만)
     if (isAdmin) {
-        departmentSelect.addEventListener('change', function() {
-            const selectedDept = this.value;
-            assigneeSelect.innerHTML = '<option value="">담당자를 선택하세요</option>';
-            
-            if (selectedDept && employeesByDepartment[selectedDept]) {
-                employeesByDepartment[selectedDept].forEach(employee => {
-                    const option = document.createElement('option');
-                    option.value = employee.username;
-                    option.textContent = `${employee.name} (${employee.position})`;
-                    assigneeSelect.appendChild(option);
-                });
-            }
-        });
+        departmentSelect.addEventListener('change', updateAssigneeOptions);
     } else {
         // 일반 직원은 부서와 담당자 변경 불가
         departmentSelect.disabled = true;
@@ -453,9 +516,15 @@ document.addEventListener('DOMContentLoaded', function() {
             assignee: scheduleData.assignee
         });
 
-        // API 호출
-        fetch('{% url "scheduling:add_schedule" %}', {
-            method: 'POST',
+        // API 호출 (수정 모드에 따라 다른 URL과 메서드 사용)
+        const apiUrl = editSchedule ? 
+            `/scheduling/api/update/${editSchedule.id}/` : 
+            '{% url "scheduling:add_schedule" %}';
+        const method = editSchedule ? 'PUT' : 'POST';
+        const actionText = editSchedule ? '수정' : '추가';
+        
+        fetch(apiUrl, {
+            method: method,
             headers: {
                 'Content-Type': 'application/json',
                 'X-CSRFToken': formData.get('csrfmiddlewaretoken')
@@ -465,23 +534,23 @@ document.addEventListener('DOMContentLoaded', function() {
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                console.log('일정 추가 성공:', data);
-                showSuccessMessage();
+                console.log(`일정 ${actionText} 성공:`, data);
+                showSuccessMessage(`일정이 성공적으로 ${actionText}되었습니다.`);
                 setTimeout(() => {
                     window.location.href = '{% url "scheduling:calendar" %}';
                 }, 2000);
             } else {
-                console.error('일정 추가 실패:', data);
-                showErrorMessage(data.message || '일정 추가 중 오류가 발생했습니다.');
+                console.error(`일정 ${actionText} 실패:`, data);
+                showErrorMessage(data.message || `일정 ${actionText} 중 오류가 발생했습니다.`);
                 submitBtn.disabled = false;
-                submitBtn.textContent = '일정 추가';
+                submitBtn.textContent = `일정 ${actionText}`;
             }
         })
         .catch(error => {
-            console.error('일정 추가 오류:', error);
+            console.error(`일정 ${actionText} 오류:`, error);
             showErrorMessage('서버 통신 중 오류가 발생했습니다.');
             submitBtn.disabled = false;
-            submitBtn.textContent = '일정 추가';
+            submitBtn.textContent = `일정 ${actionText}`;
         });
     });
 
@@ -533,8 +602,10 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    function showSuccessMessage() {
-        document.getElementById('successMessage').style.display = 'block';
+    function showSuccessMessage(message = '일정이 성공적으로 추가되었습니다.') {
+        const successElement = document.getElementById('successMessage');
+        successElement.textContent = message;
+        successElement.style.display = 'block';
         document.getElementById('errorMessage').style.display = 'none';
     }
 

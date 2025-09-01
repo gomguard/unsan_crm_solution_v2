@@ -351,6 +351,12 @@ document.addEventListener('DOMContentLoaded', function() {
     const modal = document.getElementById('eventModal');
     const closeModalBtn = document.getElementById('closeModal');
     
+    // 현재 사용자 정보
+    const currentUser = {
+        username: '{{ user.username }}',
+        is_superuser: {{ user.is_superuser|yesno:"true,false" }}
+    };
+    
     // 초기 뷰 설정
     initializeViews();
     
@@ -643,6 +649,30 @@ document.addEventListener('DOMContentLoaded', function() {
         priorityEl.textContent = priorityInfo.text;
         priorityEl.className = priorityInfo.class;
         
+        // 권한 체크 후 버튼 표시/비표시
+        const editBtn = document.getElementById('editEventBtn');
+        const deleteBtn = document.getElementById('deleteEventBtn');
+        
+        const canEdit = canEditEvent(event);
+        const canDelete = canDeleteEvent(event);
+        
+        editBtn.style.display = canEdit ? 'inline-flex' : 'none';
+        deleteBtn.style.display = canDelete ? 'inline-flex' : 'none';
+        
+        if (canEdit || canDelete) {
+            // 기존 이벤트 리스너 제거
+            editBtn.replaceWith(editBtn.cloneNode(true));
+            deleteBtn.replaceWith(deleteBtn.cloneNode(true));
+            
+            // 새로운 이벤트 리스너 추가
+            if (canEdit) {
+                document.getElementById('editEventBtn').addEventListener('click', () => editEvent(event));
+            }
+            if (canDelete) {
+                document.getElementById('deleteEventBtn').addEventListener('click', () => deleteEvent(event));
+            }
+        }
+        
         modal.classList.remove('hidden');
     }
     
@@ -731,6 +761,93 @@ document.addEventListener('DOMContentLoaded', function() {
             modal.classList.add('hidden');
         }
     });
+    
+    // 일정 수정 함수
+    function editEvent(event) {
+        // 일정 추가 페이지로 이동하면서 수정 모드로 설정
+        const editUrl = `{% url "scheduling:add_schedule_view" %}?edit=${event.id}`;
+        window.location.href = editUrl;
+    }
+    
+    // 일정 삭제 함수
+    function deleteEvent(event) {
+        if (!confirm(`"${event.title}" 일정을 삭제하시겠습니까?`)) {
+            return;
+        }
+        
+        fetch(`/scheduling/api/delete/${event.id}/`, {
+            method: 'DELETE',
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken'),
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert(data.message);
+                modal.classList.add('hidden');
+                refreshCalendar(); // 캘린더 새로고침
+            } else {
+                alert('삭제 실패: ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('삭제 오류:', error);
+            alert('삭제 중 오류가 발생했습니다.');
+        });
+    }
+    
+    // 권한 체크 함수들
+    function canEditEvent(event) {
+        // 최고 관리자는 모든 일정 수정 가능
+        if (currentUser.is_superuser) {
+            return true;
+        }
+        
+        const creatorUsername = event.extendedProps?.creator_username;
+        const assigneeUsername = event.extendedProps?.assignee_username;
+        const departmentManagerUsername = event.extendedProps?.department_manager_username;
+        
+        // 생성자, 담당자, 부서 관리자는 수정 가능
+        return (
+            currentUser.username === creatorUsername ||
+            currentUser.username === assigneeUsername ||
+            currentUser.username === departmentManagerUsername
+        );
+    }
+    
+    function canDeleteEvent(event) {
+        // 최고 관리자는 모든 일정 삭제 가능
+        if (currentUser.is_superuser) {
+            return true;
+        }
+        
+        const creatorUsername = event.extendedProps?.creator_username;
+        const departmentManagerUsername = event.extendedProps?.department_manager_username;
+        
+        // 생성자나 부서 관리자만 삭제 가능
+        return (
+            currentUser.username === creatorUsername ||
+            currentUser.username === departmentManagerUsername
+        );
+    }
+    
+    // CSRF 토큰 가져오기 함수
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
     
     // 캘린더 새로고침 함수
     function refreshCalendar() {
@@ -846,9 +963,12 @@ document.addEventListener('DOMContentLoaded', function() {
         };
         
         const dept = event.extendedProps?.department || 'admin';
+        const assignee = event.extendedProps?.assignee || '담당자 미지정';
         const deptColor = departmentColors[dept] || '#6B7280';
         
-        console.log('Department mapping:', dept, '→', deptColor);
+        // 부서 - 담당자 형태로 표시
+        const deptAssigneeText = `${dept} - ${assignee}`;
+        
         
         div.innerHTML = `
             <div class="flex">
@@ -862,7 +982,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             <span>${timeStr}</span>
                         </div>
                         <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium" style="background-color: ${deptColor}20; color: ${deptColor}">
-                            ${dept}
+                            ${deptAssigneeText}
                         </span>
                     </div>
                     <h4 class="text-sm font-semibold text-gray-900 dark:text-white mb-1">
@@ -1066,16 +1186,6 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // 일정 추가 버튼 (이제 링크로 변경됨)
     
-    // 수정/삭제 버튼
-    document.getElementById('editEventBtn').addEventListener('click', function() {
-        alert('일정 수정 기능은 곧 구현될 예정입니다.');
-    });
-    
-    document.getElementById('deleteEventBtn').addEventListener('click', function() {
-        if (confirm('정말 삭제하시겠습니까?')) {
-            alert('일정 삭제 기능은 곧 구현될 예정입니다.');
-        }
-    });
     
     // 뷰 전환 관련 함수들
     function switchView(newView) {
@@ -1223,7 +1333,11 @@ document.addEventListener('DOMContentLoaded', function() {
         const dayEnd = new Date(currentDate);
         dayEnd.setHours(23, 59, 59, 999);
         
-        const dateStr = currentDate.toISOString().split('T')[0];
+        // 로컬 날짜 문자열 생성 (시간대 문제 해결)
+        const year = currentDate.getFullYear();
+        const month = String(currentDate.getMonth() + 1).padStart(2, '0');
+        const day = String(currentDate.getDate()).padStart(2, '0');
+        const dateStr = `${year}-${month}-${day}`;
         
         // 부서 필터링 적용 (서버 API용 부서명 매핑)
         let mappedDepartment = activeTab;
@@ -1276,7 +1390,8 @@ document.addEventListener('DOMContentLoaded', function() {
             })
             .catch(error => {
                 console.error('일간 뷰 이벤트 로드 실패:', error);
-                console.error('에러 세부사항:', error.message);
+                // 일간뷰에서 빈 상태 표시
+                renderDayEvents([]);
             });
     }
     

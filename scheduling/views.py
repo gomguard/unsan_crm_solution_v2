@@ -1,4 +1,4 @@
-from django.shortcuts import render, get_object_or_404
+from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
@@ -81,6 +81,8 @@ def get_events(request):
                 'assignee': f"{schedule.assignee.last_name}{schedule.assignee.first_name}",
                 'assignee_username': schedule.assignee.username,
                 'department': schedule.department.display_name,
+                'creator_username': schedule.creator.username,
+                'department_manager_username': schedule.department.manager.username if schedule.department.manager else None,
             }
         })
     
@@ -88,9 +90,25 @@ def get_events(request):
 
 @login_required
 def add_schedule_view(request):
-    """일정 추가 페이지"""
+    """일정 추가/수정 페이지"""
     current_user = request.user
     departments = Department.objects.all()
+    
+    # 수정 모드 확인
+    edit_schedule_id = request.GET.get('edit')
+    edit_schedule = None
+    if edit_schedule_id:
+        try:
+            edit_schedule = get_object_or_404(Schedule, id=edit_schedule_id)
+            # 수정 권한 검증
+            if not edit_schedule.can_be_edited_by(current_user):
+                from django.contrib import messages
+                messages.error(request, '이 일정을 수정할 권한이 없습니다.')
+                return redirect('scheduling:calendar')
+        except:
+            from django.contrib import messages
+            messages.error(request, '존재하지 않는 일정입니다.')
+            return redirect('scheduling:calendar')
     
     # 사용자 권한에 따른 직원 목록 필터링
     if current_user.is_superuser:
@@ -119,7 +137,8 @@ def add_schedule_view(request):
         'departments': departments,
         'employees': employees,
         'current_user': current_user,
-        'managed_departments': managed_departments
+        'managed_departments': managed_departments,
+        'edit_schedule': edit_schedule
     })
 
 @login_required 
@@ -152,6 +171,10 @@ def add_schedule_api(request):
             assignee = User.objects.get(username=data['assignee'])
         except User.DoesNotExist:
             return JsonResponse({'success': False, 'message': '존재하지 않는 담당자입니다.'})
+        
+        # 부서와 담당자 일관성 검증 (최고관리자는 제외)
+        if not request.user.is_superuser and assignee.department != department:
+            return JsonResponse({'success': False, 'message': '선택한 담당자가 해당 부서에 속하지 않습니다.'})
         
         # 권한 검증: 세분화된 권한 체크
         def can_assign_to_user(current_user, target_user):
@@ -214,6 +237,93 @@ def add_schedule_api(request):
         
     except json.JSONDecodeError:
         return JsonResponse({'success': False, 'message': '잘못된 JSON 형식입니다.'})
+    except Exception as e:
+        return JsonResponse({'success': False, 'message': f'서버 오류가 발생했습니다: {str(e)}'})
+
+@login_required
+@csrf_exempt 
+def update_schedule_api(request, schedule_id):
+    """일정 수정 API"""
+    if request.method != 'PUT':
+        return JsonResponse({'success': False, 'message': 'PUT 메서드만 허용됩니다.'})
+    
+    try:
+        # 일정 조회
+        schedule = get_object_or_404(Schedule, id=schedule_id)
+        
+        # 권한 검증
+        if not schedule.can_be_edited_by(request.user):
+            return JsonResponse({'success': False, 'message': '이 일정을 수정할 권한이 없습니다.'})
+        
+        # 요청 데이터 파싱
+        data = json.loads(request.body)
+        
+        # 필수 필드 검증
+        required_fields = ['title', 'start_datetime', 'end_datetime']
+        for field in required_fields:
+            if not data.get(field):
+                return JsonResponse({'success': False, 'message': f'{field} 필드가 필요합니다.'})
+        
+        # 일시 파싱
+        try:
+            start_datetime = datetime.fromisoformat(data['start_datetime'])
+            end_datetime = datetime.fromisoformat(data['end_datetime'])
+            
+            # timezone aware로 변경
+            start_datetime = timezone.make_aware(start_datetime)
+            end_datetime = timezone.make_aware(end_datetime)
+        except ValueError:
+            return JsonResponse({'success': False, 'message': '잘못된 일시 형식입니다.'})
+        
+        # 일시 검증
+        if end_datetime <= start_datetime:
+            return JsonResponse({'success': False, 'message': '종료 일시는 시작 일시보다 늦어야 합니다.'})
+        
+        # 일정 수정
+        schedule.title = data['title']
+        schedule.description = data.get('description', '')
+        schedule.location = data.get('location', '')
+        schedule.start_datetime = start_datetime
+        schedule.end_datetime = end_datetime
+        schedule.priority = data.get('priority', 'normal')
+        schedule.status = data.get('status', 'pending')
+        schedule.updated_by = request.user
+        schedule.save()
+        
+        return JsonResponse({
+            'success': True,
+            'message': '일정이 성공적으로 수정되었습니다.'
+        })
+        
+    except json.JSONDecodeError:
+        return JsonResponse({'success': False, 'message': '잘못된 JSON 형식입니다.'})
+    except Exception as e:
+        return JsonResponse({'success': False, 'message': f'서버 오류가 발생했습니다: {str(e)}'})
+
+@login_required
+@csrf_exempt
+def delete_schedule_api(request, schedule_id):
+    """일정 삭제 API"""
+    if request.method != 'DELETE':
+        return JsonResponse({'success': False, 'message': 'DELETE 메서드만 허용됩니다.'})
+    
+    try:
+        # 일정 조회
+        schedule = get_object_or_404(Schedule, id=schedule_id)
+        
+        # 권한 검증
+        if not schedule.can_be_deleted_by(request.user):
+            return JsonResponse({'success': False, 'message': '이 일정을 삭제할 권한이 없습니다.'})
+        
+        # 일정 삭제
+        schedule_title = schedule.title
+        schedule.delete()
+        
+        return JsonResponse({
+            'success': True,
+            'message': f'"{schedule_title}" 일정이 삭제되었습니다.'
+        })
+        
     except Exception as e:
         return JsonResponse({'success': False, 'message': f'서버 오류가 발생했습니다: {str(e)}'})
 

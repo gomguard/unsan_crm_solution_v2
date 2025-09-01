@@ -80,7 +80,6 @@ class Schedule(models.Model):
             self.ical_uid = f"schedule-{timezone.now().timestamp()}-{self.pk or 0}@unsan-crm.local"
         super().save(*args, **kwargs)
     
-    @property
     def can_be_edited_by(self, user):
         """사용자가 이 일정을 편집할 수 있는지 확인"""
         # 생성자, 담당자, 부서 관리자, 전체 관리자는 편집 가능
@@ -91,7 +90,6 @@ class Schedule(models.Model):
             user.is_superuser
         )
     
-    @property
     def can_be_deleted_by(self, user):
         """사용자가 이 일정을 삭제할 수 있는지 확인"""
         # 생성자, 부서 관리자, 전체 관리자만 삭제 가능

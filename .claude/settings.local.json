@@ -13,7 +13,8 @@
       "Read(d:\\Gomguard\\program\\unsan_crm_solution_v2\\templates/**)",
       "Read(d:\\Gomguard\\program\\unsan_crm_solution_v2\\templates/**)",
       "Read(d:\\Gomguard\\program\\unsan_crm_solution_v2\\templates/**)",
-      "Read(c:\\Users\\knhol\\OneDrive\\문서\\카카오톡 받은 파일/**)"
+      "Read(c:\\Users\\knhol\\OneDrive\\문서\\카카오톡 받은 파일/**)",
+      "Bash(git add:*)"
     ],
     "deny": [],
     "ask": []
