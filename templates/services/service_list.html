@@ -1,0 +1,510 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}서비스 요청 관리{% endblock %}
+
+{% block content %}
+<div class="bg-gray-50 dark:bg-gray-900 min-h-screen">
+    <main class="py-12">
+        <div class="mx-auto max-w-7xl sm:px-2 lg:px-8">
+            <div class="mx-auto max-w-2xl px-4 lg:max-w-7xl lg:px-0">
+                <!-- 헤더 -->
+                <div class="flex items-center justify-between mb-8">
+                    <div>
+                        <h1 class="text-2xl font-bold tracking-tight text-gray-900 dark:text-white sm:text-3xl">서비스 요청 관리</h1>
+                        <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">최근 서비스 요청 상태를 확인하고 관리하세요.</p>
+                    </div>
+                    <a href="{% url 'services:service_create' %}" 
+                       class="inline-flex items-center px-4 py-2.5 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-lg shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                        </svg>
+                        새 서비스 요청
+                    </a>
+                </div>
+
+                <!-- 통계 대시보드 -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                    <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm rounded-lg">
+                        <div class="p-5">
+                            <div class="flex items-center">
+                                <div class="flex-shrink-0">
+                                    <div class="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center">
+                                        <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                                        </svg>
+                                    </div>
+                                </div>
+                                <div class="ml-5 w-0 flex-1">
+                                    <dl>
+                                        <dt class="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">총 요청</dt>
+                                        <dd class="text-lg font-medium text-gray-900 dark:text-white">{{ total_count }}</dd>
+                                    </dl>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm rounded-lg">
+                        <div class="p-5">
+                            <div class="flex items-center">
+                                <div class="flex-shrink-0">
+                                    <div class="w-8 h-8 bg-orange-500 rounded-lg flex items-center justify-center">
+                                        <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                        </svg>
+                                    </div>
+                                </div>
+                                <div class="ml-5 w-0 flex-1">
+                                    <dl>
+                                        <dt class="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">접수대기</dt>
+                                        <dd class="text-lg font-medium text-gray-900 dark:text-white">{{ pending_count }}</dd>
+                                    </dl>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm rounded-lg">
+                        <div class="p-5">
+                            <div class="flex items-center">
+                                <div class="flex-shrink-0">
+                                    <div class="w-8 h-8 bg-yellow-500 rounded-lg flex items-center justify-center">
+                                        <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547"/>
+                                        </svg>
+                                    </div>
+                                </div>
+                                <div class="ml-5 w-0 flex-1">
+                                    <dl>
+                                        <dt class="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">일정확정</dt>
+                                        <dd class="text-lg font-medium text-gray-900 dark:text-white">{{ scheduled_count }}</dd>
+                                    </dl>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm rounded-lg">
+                        <div class="p-5">
+                            <div class="flex items-center">
+                                <div class="flex-shrink-0">
+                                    <div class="w-8 h-8 bg-green-500 rounded-lg flex items-center justify-center">
+                                        <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                        </svg>
+                                    </div>
+                                </div>
+                                <div class="ml-5 w-0 flex-1">
+                                    <dl>
+                                        <dt class="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">완료</dt>
+                                        <dd class="text-lg font-medium text-gray-900 dark:text-white">{{ completed_count }}</dd>
+                                    </dl>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 검색 및 필터 섹션 -->
+                <div class="bg-white dark:bg-gray-800 shadow-sm rounded-lg mb-8">
+                    <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+                        <h3 class="text-lg font-medium text-gray-900 dark:text-white">검색 및 필터</h3>
+                    </div>
+                    <div class="p-6">
+                        <form method="get" class="space-y-6">
+                            <!-- 검색창 -->
+                            <div>
+                                <label for="search" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">검색</label>
+                                <div class="relative">
+                                    <input type="text" name="search" id="search" value="{{ search_query }}" placeholder="SR코드, 고객명, 전화번호, 차량번호로 검색..." 
+                                           class="block w-full rounded-lg border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm pr-10">
+                                    <div class="absolute inset-y-0 right-0 pr-3 flex items-center">
+                                        <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                                        </svg>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- 필터 옵션 -->
+                            <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+                                <div>
+                                    <label for="status" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">상태</label>
+                                    <select name="status" id="status" class="block w-full rounded-lg border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                                        <option value="all" {% if current_status == 'all' %}selected{% endif %}>전체 상태</option>
+                                        {% for value, label in status_choices %}
+                                        <option value="{{ value }}" {% if current_status == value %}selected{% endif %}>{{ label }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label for="service_type" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">서비스 유형</label>
+                                    <select name="service_type" id="service_type" class="block w-full rounded-lg border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                                        <option value="all" {% if current_service_type == 'all' %}selected{% endif %}>전체 서비스</option>
+                                        <option value="engine_oil" {% if current_service_type == 'engine_oil' %}selected{% endif %}>엔진오일교환</option>
+                                        <option value="maintenance" {% if current_service_type == 'maintenance' %}selected{% endif %}>정비 점검</option>
+                                        <option value="car_inspection" {% if current_service_type == 'car_inspection' %}selected{% endif %}>자동차검사</option>
+                                        <option value="insurance" {% if current_service_type == 'insurance' %}selected{% endif %}>보험미팅</option>
+                                        <option value="other" {% if current_service_type == 'other' %}selected{% endif %}>기타</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label for="priority" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">우선순위</label>
+                                    <select name="priority" id="priority" class="block w-full rounded-lg border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                                        <option value="all" {% if current_priority == 'all' %}selected{% endif %}>전체 우선순위</option>
+                                        {% for value, label in priority_choices %}
+                                        <option value="{{ value }}" {% if current_priority == value %}selected{% endif %}>{{ label }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="flex items-end">
+                                    <button type="submit" class="w-full flex justify-center py-2.5 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200">
+                                        검색 & 필터
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 서비스 요청 목록 -->
+        <section aria-labelledby="recent-heading" class="mt-8">
+            <h2 id="recent-heading" class="sr-only">최근 서비스 요청</h2>
+            <div class="mx-auto max-w-7xl sm:px-2 lg:px-8">
+                <div class="mx-auto max-w-2xl space-y-4 sm:px-4 lg:max-w-7xl lg:px-0">
+                    {% if services %}
+                        {% for service in services %}
+                        <div class="border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm rounded-lg">
+                            <h3 class="sr-only">서비스 요청 - {{ service.service_type.name }} (<time datetime="{{ service.created_at|date:'c' }}">{{ service.created_at|date:"Y년 n월 j일" }}</time>)</h3>
+
+                            <!-- 컴팩트한 카드 레이아웃 -->
+                            <div class="p-4">
+                                <div class="flex items-center justify-between mb-3">
+                                    <!-- 헤더 좌측 - 서비스 정보 -->
+                                    <div class="flex items-center space-x-3">
+                                        <!-- 서비스 아이콘 (작게) -->
+                                        <div class="size-12 shrink-0">
+                                            <div class="w-full h-full rounded-lg flex items-center justify-center
+                                                {% if service.service_type.category == 'car_inspection' %}bg-purple-100 dark:bg-purple-900/30
+                                                {% elif service.service_type.category == 'engine_oil' %}bg-orange-100 dark:bg-orange-900/30
+                                                {% elif service.service_type.category == 'maintenance' %}bg-blue-100 dark:bg-blue-900/30
+                                                {% elif service.service_type.category == 'insurance' %}bg-green-100 dark:bg-green-900/30
+                                                {% else %}bg-gray-100 dark:bg-gray-700
+                                                {% endif %}">
+                                                {% if service.service_type.category == 'car_inspection' %}
+                                                <svg class="w-6 h-6 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                                </svg>
+                                                {% elif service.service_type.category == 'engine_oil' %}
+                                                <svg class="w-6 h-6 text-orange-600 dark:text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547"/>
+                                                </svg>
+                                                {% elif service.service_type.category == 'maintenance' %}
+                                                <svg class="w-6 h-6 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                                </svg>
+                                                {% elif service.service_type.category == 'insurance' %}
+                                                <svg class="w-6 h-6 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+                                                </svg>
+                                                {% else %}
+                                                <svg class="w-6 h-6 text-gray-600 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                                                </svg>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- 서비스 기본 정보 -->
+                                        <div>
+                                            <div class="flex items-center space-x-2">
+                                                <h5 class="text-base font-semibold text-gray-900 dark:text-white">{{ service.service_type.name }}</h5>
+                                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium
+                                                    {% if service.service_type.category == 'car_inspection' %}bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300
+                                                    {% elif service.service_type.category == 'engine_oil' %}bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300
+                                                    {% elif service.service_type.category == 'maintenance' %}bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300
+                                                    {% elif service.service_type.category == 'insurance' %}bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300
+                                                    {% else %}bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300
+                                                    {% endif %}">
+                                                    {{ service.service_type.get_category_display }}
+                                                </span>
+                                            </div>
+                                            <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                                                {% if service.customer %}{{ service.customer.name }}{% else %}{{ service.temp_customer_name|default:"미확인" }}{% endif %}
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    <!-- 헤더 우측 - 상태와 액션 -->
+                                    <div class="flex items-center space-x-3">
+                                        <div class="text-right">
+                                            <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium
+                                                {% if service.status == 'pending' %}bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300
+                                                {% elif service.status == 'scheduled' %}bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300
+                                                {% elif service.status == 'in_progress' %}bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300
+                                                {% elif service.status == 'completed' %}bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300
+                                                {% elif service.status == 'cancelled' %}bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300
+                                                {% endif %}">
+                                                {{ service.get_status_display }}
+                                            </span>
+                                            {% if service.priority != 'normal' %}
+                                            <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium mt-1
+                                                {% if service.priority == 'urgent' %}bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300
+                                                {% elif service.priority == 'high' %}bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300
+                                                {% elif service.priority == 'low' %}bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300
+                                                {% endif %}">
+                                                {{ service.get_priority_display }}
+                                            </span>
+                                            {% endif %}
+                                        </div>
+                                        
+                                        <!-- 액션 버튼들 -->
+                                        <div class="flex items-center space-x-2">
+                                            <a href="{% url 'services:service_detail' service.id %}" 
+                                               class="flex items-center justify-center rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-2.5 py-1.5 text-xs font-medium text-gray-700 dark:text-gray-300 shadow-sm hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-colors">
+                                                상세보기
+                                            </a>
+                                            <select class="status-select rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-2 py-1.5 text-xs font-medium text-gray-700 dark:text-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                                    data-service-id="{{ service.id }}" data-current-status="{{ service.status }}">
+                                                {% for value, label in status_choices %}
+                                                <option value="{{ value }}" {% if value == service.status %}selected{% endif %}>{{ label }}</option>
+                                                {% endfor %}
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- 핵심 정보 요약 -->
+                                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm text-gray-600 dark:text-gray-400">
+                                    <div>
+                                        <span class="font-medium text-gray-900 dark:text-white">연락처:</span>
+                                        <p>{% if service.customer %}{{ service.customer.get_masked_phone }}{% else %}{{ service.temp_customer_phone|default:"미입력" }}{% endif %}</p>
+                                    </div>
+                                    {% if service.vehicle or service.temp_vehicle_number %}
+                                    <div>
+                                        <span class="font-medium text-gray-900 dark:text-white">차량번호:</span>
+                                        <p>{% if service.vehicle %}{{ service.vehicle.vehicle_number }}{% else %}{{ service.temp_vehicle_number }}{% endif %}</p>
+                                    </div>
+                                    {% endif %}
+                                    {% if service.assigned_employee %}
+                                    <div>
+                                        <span class="font-medium text-gray-900 dark:text-white">담당자:</span>
+                                        <p>{{ service.assigned_employee.last_name }}{{ service.assigned_employee.first_name }}</p>
+                                    </div>
+                                    {% endif %}
+                                    <div>
+                                        <span class="font-medium text-gray-900 dark:text-white">
+                                            {% if service.estimated_price %}비용:{% else %}접수일:{% endif %}
+                                        </span>
+                                        <p>
+                                            {% if service.estimated_price %}
+                                                {{ service.estimated_price|floatformat:0|intcomma }}원
+                                            {% else %}
+                                                {{ service.created_at|date:"n월 j일" }}
+                                            {% endif %}
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <!-- 하단 정보 영역 -->
+                                <div class="mt-3">
+                                    <!-- 추가 정보 (있을 때만) -->
+                                    {% if service.scheduled_date or service.description or service.status == 'completed' or service.status == 'in_progress' %}
+                                    <div class="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400 mb-2">
+                                        <div class="flex items-center space-x-4">
+                                            {% if service.scheduled_date %}
+                                            <span>예정: {{ service.scheduled_date|date:"n월 j일 H:i" }}</span>
+                                            {% endif %}
+                                            {% if service.status == 'completed' %}
+                                            <div class="flex items-center">
+                                                <svg class="size-3 text-green-500 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                                    <path d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16Zm3.857-9.809a.75.75 0 0 0-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 1 0-1.06 1.061l2.5 2.5a.75.75 0 0 0 1.137-.089l4-5.5Z" clip-rule="evenodd" fill-rule="evenodd" />
+                                                </svg>
+                                                <span>완료됨</span>
+                                            </div>
+                                            {% elif service.status == 'in_progress' %}
+                                            <div class="flex items-center">
+                                                <svg class="size-3 text-yellow-500 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                                    <path d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16Zm.75-13a.75.75 0 0 0-1.5 0v5c0 .414.336.75.75.75h4a.75.75 0 0 0 0-1.5h-3.25V5Z" clip-rule="evenodd" fill-rule="evenodd" />
+                                                </svg>
+                                                <span>진행중</span>
+                                            </div>
+                                            {% endif %}
+                                        </div>
+                                        {% if service.description and service.description|length > 15 %}
+                                            {% with desc_lower=service.description|lower %}
+                                                {% if '관련 요청사항' not in desc_lower and '점검' not in desc_lower and '교환' not in desc_lower and '검사' not in desc_lower %}
+                                                <span class="truncate max-w-xs">{{ service.description|truncatewords:8 }}</span>
+                                                {% endif %}
+                                            {% endwith %}
+                                        {% endif %}
+                                    </div>
+                                    {% endif %}
+                                    
+                                    <!-- 요청번호는 항상 표시 -->
+                                    <div class="flex justify-end">
+                                        <span class="text-xs text-gray-400 dark:text-gray-500 font-mono">SR{{ service.id|stringformat:"08d" }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                    <div class="text-center">
+                        <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                        </svg>
+                        <h3 class="mt-2 text-sm font-semibold text-gray-900 dark:text-white">서비스 요청이 없습니다</h3>
+                        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">새로운 서비스 요청을 추가해보세요.</p>
+                        <div class="mt-6">
+                            <a href="{% url 'services:service_create' %}" class="inline-flex items-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">
+                                새 서비스 요청
+                            </a>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    <!-- 페이지네이션 -->
+                    {% if page_obj.has_other_pages %}
+                    <div class="flex items-center justify-between border-t border-gray-200 bg-white px-4 py-3 sm:px-6 dark:border-white/10 dark:bg-transparent">
+                      <div class="flex flex-1 justify-between sm:hidden">
+                        {% if page_obj.has_previous %}
+                        <a href="?{% if search_query %}search={{ search_query }}&{% endif %}{% if current_status != 'all' %}status={{ current_status }}&{% endif %}{% if current_service_type != 'all' %}service_type={{ current_service_type }}&{% endif %}{% if current_priority != 'all' %}priority={{ current_priority }}&{% endif %}page={{ page_obj.previous_page_number }}" class="relative inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-white/10 dark:bg-white/5 dark:text-gray-200 dark:hover:bg-white/10">Previous</a>
+                        {% endif %}
+                        {% if page_obj.has_next %}
+                        <a href="?{% if search_query %}search={{ search_query }}&{% endif %}{% if current_status != 'all' %}status={{ current_status }}&{% endif %}{% if current_service_type != 'all' %}service_type={{ current_service_type }}&{% endif %}{% if current_priority != 'all' %}priority={{ current_priority }}&{% endif %}page={{ page_obj.next_page_number }}" class="relative ml-3 inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-white/10 dark:bg-white/5 dark:text-gray-200 dark:hover:bg-white/10">Next</a>
+                        {% endif %}
+                      </div>
+                      <div class="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
+                        <div>
+                          <p class="text-sm text-gray-700 dark:text-gray-300">
+                            Showing
+                            <span class="font-medium">{{ page_obj.start_index }}</span>
+                            to
+                            <span class="font-medium">{{ page_obj.end_index }}</span>
+                            of
+                            <span class="font-medium">{{ page_obj.paginator.count }}</span>
+                            results
+                          </p>
+                        </div>
+                        <div>
+                          <nav aria-label="Pagination" class="isolate inline-flex -space-x-px rounded-md shadow-sm dark:shadow-none">
+                            {% if page_obj.has_previous %}
+                            <a href="?{% if search_query %}search={{ search_query }}&{% endif %}{% if current_status != 'all' %}status={{ current_status }}&{% endif %}{% if current_service_type != 'all' %}service_type={{ current_service_type }}&{% endif %}{% if current_priority != 'all' %}priority={{ current_priority }}&{% endif %}page={{ page_obj.previous_page_number }}" class="relative inline-flex items-center rounded-l-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 dark:ring-gray-700 dark:hover:bg-white/5">
+                              <span class="sr-only">Previous</span>
+                              <svg viewBox="0 0 20 20" fill="currentColor" data-slot="icon" aria-hidden="true" class="size-5">
+                                <path d="M11.78 5.22a.75.75 0 0 1 0 1.06L8.06 10l3.72 3.72a.75.75 0 1 1-1.06 1.06l-4.25-4.25a.75.75 0 0 1 0-1.06l4.25-4.25a.75.75 0 0 1 1.06 0Z" clip-rule="evenodd" fill-rule="evenodd" />
+                              </svg>
+                            </a>
+                            {% endif %}
+                            
+                            {% for page_num in page_obj.paginator.page_range %}
+                                {% if page_num == page_obj.number %}
+                                <a href="#" aria-current="page" class="relative z-10 inline-flex items-center bg-indigo-600 px-4 py-2 text-sm font-semibold text-white focus:z-20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 dark:bg-indigo-500 dark:focus-visible:outline-indigo-500">{{ page_num }}</a>
+                                {% elif page_num > page_obj.number|add:'-3' and page_num < page_obj.number|add:'3' %}
+                                <a href="?{% if search_query %}search={{ search_query }}&{% endif %}{% if current_status != 'all' %}status={{ current_status }}&{% endif %}{% if current_service_type != 'all' %}service_type={{ current_service_type }}&{% endif %}{% if current_priority != 'all' %}priority={{ current_priority }}&{% endif %}page={{ page_num }}" class="relative inline-flex items-center px-4 py-2 text-sm font-semibold text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 dark:text-gray-200 dark:ring-gray-700 dark:hover:bg-white/5">{{ page_num }}</a>
+                                {% endif %}
+                            {% endfor %}
+                            
+                            {% if page_obj.has_next %}
+                            <a href="?{% if search_query %}search={{ search_query }}&{% endif %}{% if current_status != 'all' %}status={{ current_status }}&{% endif %}{% if current_service_type != 'all' %}service_type={{ current_service_type }}&{% endif %}{% if current_priority != 'all' %}priority={{ current_priority }}&{% endif %}page={{ page_obj.next_page_number }}" class="relative inline-flex items-center rounded-r-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 dark:ring-gray-700 dark:hover:bg-white/5">
+                              <span class="sr-only">Next</span>
+                              <svg viewBox="0 0 20 20" fill="currentColor" data-slot="icon" aria-hidden="true" class="size-5">
+                                <path d="M8.22 5.22a.75.75 0 0 1 1.06 0l4.25 4.25a.75.75 0 0 1 0 1.06l-4.25 4.25a.75.75 0 0 1-1.06-1.06L11.94 10 8.22 6.28a.75.75 0 0 1 0-1.06Z" clip-rule="evenodd" fill-rule="evenodd" />
+                              </svg>
+                            </a>
+                            {% endif %}
+                          </nav>
+                        </div>
+                      </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </section>
+    </main>
+</div>
+
+<script>
+    // 필터 변경시 자동 제출
+    document.getElementById('status').addEventListener('change', function() {
+        this.form.submit();
+    });
+    
+    document.getElementById('priority').addEventListener('change', function() {
+        this.form.submit();
+    });
+    
+    document.getElementById('service_type').addEventListener('change', function() {
+        this.form.submit();
+    });
+    
+    // 상태 변경 기능
+    document.addEventListener('DOMContentLoaded', function() {
+        const statusSelects = document.querySelectorAll('.status-select');
+        
+        statusSelects.forEach(select => {
+            select.addEventListener('change', async function() {
+                const serviceId = this.dataset.serviceId;
+                const newStatus = this.value;
+                const currentStatus = this.dataset.currentStatus;
+                
+                if (newStatus === currentStatus) {
+                    return; // 같은 상태면 무시
+                }
+                
+                // 확인 메시지
+                const statusLabels = {
+                    'pending': '접수대기',
+                    'scheduled': '일정확정', 
+                    'in_progress': '진행중',
+                    'completed': '완료',
+                    'cancelled': '취소'
+                };
+                
+                if (!confirm(`상태를 "${statusLabels[newStatus]}"로 변경하시겠습니까?`)) {
+                    this.value = currentStatus; // 원래 상태로 되돌리기
+                    return;
+                }
+                
+                try {
+                    const response = await fetch(`/services/${serviceId}/update-status/`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                        },
+                        body: JSON.stringify({
+                            status: newStatus
+                        })
+                    });
+                    
+                    const result = await response.json();
+                    
+                    if (result.success) {
+                        // 성공하면 페이지 새로고침해서 상태 반영
+                        location.reload();
+                    } else {
+                        alert('오류: ' + result.message);
+                        this.value = currentStatus; // 원래 상태로 되돌리기
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                    alert('서버 오류가 발생했습니다.');
+                    this.value = currentStatus; // 원래 상태로 되돌리기
+                }
+            });
+        });
+    });
+</script>
+
+<!-- CSRF 토큰을 위한 숨겨진 폼 -->
+<form style="display: none;">
+    {% csrf_token %}
+</form>
+
+{% endblock %}

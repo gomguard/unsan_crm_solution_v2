@@ -1,0 +1,340 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}서비스 요청 수정 - #{{ service.id }}{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 dark:bg-gray-900 py-6">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <!-- 헤더 -->
+        <div class="bg-white dark:bg-gray-800 shadow-sm rounded-lg mb-6">
+            <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h1 class="text-2xl font-bold text-gray-900 dark:text-white">서비스 요청 수정</h1>
+                        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                            서비스 요청 #{{ service.id }} 정보를 수정합니다
+                        </p>
+                    </div>
+                    <a href="{% url 'services:service_detail' service.id %}" 
+                       class="inline-flex items-center px-3 py-2 border border-gray-300 dark:border-gray-600 shadow-sm text-sm font-medium rounded-md text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700">
+                        <svg class="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+                        </svg>
+                        돌아가기
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- 수정 폼 -->
+        <form method="post">
+            {% csrf_token %}
+            
+            <!-- 서비스 기본 정보 -->
+            <div class="bg-white dark:bg-gray-800 shadow-sm rounded-lg mb-6">
+                <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+                    <h3 class="text-lg font-medium text-gray-900 dark:text-white">서비스 정보</h3>
+                </div>
+                <div class="px-6 py-4">
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div>
+                            <label for="service_type" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">서비스 유형</label>
+                            <select name="service_type" id="service_type" required
+                                    class="block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                                {% for service_type in service_types %}
+                                <option value="{{ service_type.id }}" {% if service_type.id == service.service_type.id %}selected{% endif %}>
+                                    {{ service_type.name }} ({{ service_type.get_category_display }})
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <div>
+                            <label for="priority" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">우선순위</label>
+                            <select name="priority" id="priority"
+                                    class="block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                                {% for value, label in priority_choices %}
+                                <option value="{{ value }}" {% if value == service.priority %}selected{% endif %}>{{ label }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <div>
+                            <label for="status" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">상태</label>
+                            <select name="status" id="status"
+                                    class="block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                                {% for value, label in status_choices %}
+                                <option value="{{ value }}" {% if value == service.status %}selected{% endif %}>{{ label }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <div>
+                            <label for="estimated_price" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">예상 금액 (원)</label>
+                            <input type="number" name="estimated_price" id="estimated_price" 
+                                   value="{% if service.estimated_price %}{{ service.estimated_price|floatformat:0 }}{% endif %}"
+                                   class="block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 일정 및 담당자 -->
+            <div class="bg-white dark:bg-gray-800 shadow-sm rounded-lg mb-6">
+                <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+                    <h3 class="text-lg font-medium text-gray-900 dark:text-white">일정 및 담당자</h3>
+                </div>
+                <div class="px-6 py-4">
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div>
+                            <label for="department" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">담당 부서</label>
+                            <select name="department" id="department"
+                                    class="block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                                <option value="">부서 선택</option>
+                                {% for department in departments %}
+                                <option value="{{ department.id }}" {% if service.service_type.department.id == department.id %}selected{% endif %}>
+                                    {{ department.display_name }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <div>
+                            <label for="assigned_employee" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">담당자</label>
+                            <select name="assigned_employee" id="assigned_employee"
+                                    class="block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                                <option value="">담당자 미지정</option>
+                                {% for employee in employees %}
+                                <option value="{{ employee.user.id }}" 
+                                        data-department="{{ employee.department.id|default:'' }}"
+                                        {% if service.assigned_employee and employee.user.id == service.assigned_employee.id %}selected{% endif %}>
+                                    {{ employee.user.last_name }}{{ employee.user.first_name }} 
+                                    {% if employee.position %}({{ employee.position }})
+                                    {% elif employee.department %}({{ employee.department.display_name }})
+                                    {% endif %}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <div>
+                            <label for="requested_date" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">희망 일시</label>
+                            <input type="datetime-local" name="requested_date" id="requested_date"
+                                   value="{% if service.requested_date %}{{ service.requested_date|date:'Y-m-d\TH:i' }}{% endif %}"
+                                   class="block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                        </div>
+                        
+                        <div>
+                            <label for="scheduled_date" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">확정 일시</label>
+                            <input type="datetime-local" name="scheduled_date" id="scheduled_date"
+                                   value="{% if service.scheduled_date %}{{ service.scheduled_date|date:'Y-m-d\TH:i' }}{% endif %}"
+                                   class="block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 서비스 내용 -->
+            <div class="bg-white dark:bg-gray-800 shadow-sm rounded-lg mb-6">
+                <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+                    <h3 class="text-lg font-medium text-gray-900 dark:text-white">서비스 내용</h3>
+                </div>
+                <div class="px-6 py-4">
+                    <div class="space-y-4">
+                        <div>
+                            <div class="flex justify-between items-center mb-2">
+                                <label for="service_detail" class="block text-sm font-medium text-gray-700 dark:text-gray-300">서비스 상세</label>
+                                <!-- 빠른 입력 버튼들 -->
+                                <div id="quick-buttons-container" class="flex flex-wrap gap-2">
+                                    {% for button in quick_buttons %}
+                                    <button type="button" class="quick-btn px-2 py-1 text-xs font-medium rounded-md bg-blue-100 text-blue-800 hover:bg-blue-200 dark:bg-blue-900 dark:text-blue-200 dark:hover:bg-blue-800"
+                                            data-content="{{ button.service_content }}">
+                                        {{ button.button_text }}
+                                    </button>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            <textarea name="service_detail" id="service_detail" rows="3"
+                                      class="block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                      placeholder="서비스 상세 내용을 입력하세요">{{ service.service_detail }}</textarea>
+                        </div>
+                        
+                        <div>
+                            <label for="description" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">고객 요청사항</label>
+                            <textarea name="description" id="description" rows="3"
+                                      class="block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                      placeholder="고객의 특별 요청사항을 입력하세요">{{ service.description }}</textarea>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 현재 고객/차량 정보 (읽기 전용) -->
+            <div class="bg-white dark:bg-gray-800 shadow-sm rounded-lg mb-6">
+                <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+                    <h3 class="text-lg font-medium text-gray-900 dark:text-white">고객 및 차량 정보 (참조용)</h3>
+                </div>
+                <div class="px-6 py-4">
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div class="space-y-2">
+                            <div class="flex justify-between">
+                                <span class="text-sm text-gray-500 dark:text-gray-400">고객명</span>
+                                <span class="text-sm text-gray-900 dark:text-white">
+                                    {% if service.customer %}{{ service.customer.name }}{% else %}{{ service.temp_customer_name|default:"미등록" }}{% endif %}
+                                </span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-sm text-gray-500 dark:text-gray-400">연락처</span>
+                                <span class="text-sm text-gray-900 dark:text-white">
+                                    {% if service.customer %}{{ service.customer.phone }}{% else %}{{ service.temp_customer_phone|default:"미등록" }}{% endif %}
+                                </span>
+                            </div>
+                        </div>
+                        <div class="space-y-2">
+                            <div class="flex justify-between">
+                                <span class="text-sm text-gray-500 dark:text-gray-400">차량번호</span>
+                                <span class="text-sm text-gray-900 dark:text-white">
+                                    {% if service.vehicle %}{{ service.vehicle.vehicle_number }}{% else %}{{ service.temp_vehicle_number|default:"미등록" }}{% endif %}
+                                </span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-sm text-gray-500 dark:text-gray-400">차종</span>
+                                <span class="text-sm text-gray-900 dark:text-white">
+                                    {% if service.vehicle.model %}{{ service.vehicle.model }}{% else %}{{ service.temp_vehicle_model|default:"미등록" }}{% endif %}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 저장 버튼 -->
+            <div class="flex justify-end space-x-3">
+                <a href="{% url 'services:service_detail' service.id %}" 
+                   class="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700">
+                    취소
+                </a>
+                <button type="submit" 
+                        class="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                    저장
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+// 부서 선택 시 담당자 필터링
+document.getElementById('department').addEventListener('change', function() {
+    const selectedDepartmentId = this.value;
+    const assigneeSelect = document.getElementById('assigned_employee');
+    const allOptions = assigneeSelect.querySelectorAll('option');
+    
+    // 모든 옵션 숨기기
+    allOptions.forEach(option => {
+        if (option.value === '') {
+            // "담당자 미지정" 옵션은 항상 표시
+            option.style.display = 'block';
+            option.disabled = false;
+        } else {
+            const optionDepartment = option.getAttribute('data-department');
+            if (selectedDepartmentId === '' || optionDepartment === selectedDepartmentId) {
+                // 부서가 선택되지 않았거나 선택된 부서와 일치하는 경우 표시
+                option.style.display = 'block';
+                option.disabled = false;
+            } else {
+                // 다른 부서의 직원은 숨기기
+                option.style.display = 'none';
+                option.disabled = true;
+            }
+        }
+    });
+    
+    // 현재 선택된 담당자가 필터링된 부서에 속하지 않으면 초기화
+    const currentSelected = assigneeSelect.value;
+    if (currentSelected) {
+        const currentOption = assigneeSelect.querySelector(`option[value="${currentSelected}"]`);
+        if (currentOption && currentOption.style.display === 'none') {
+            assigneeSelect.value = '';
+        }
+    }
+});
+
+// 서비스 유형 변경 시 빠른 입력 버튼 업데이트
+document.getElementById('service_type').addEventListener('change', function() {
+    const serviceTypeId = this.value;
+    updateQuickButtons(serviceTypeId);
+});
+
+// 빠른 입력 버튼 업데이트 함수
+async function updateQuickButtons(serviceTypeId) {
+    const container = document.getElementById('quick-buttons-container');
+    
+    if (!serviceTypeId) {
+        container.innerHTML = '';
+        return;
+    }
+    
+    try {
+        const response = await fetch(`{% url 'services:get_quick_buttons_api' %}?service_type_id=${serviceTypeId}`);
+        const data = await response.json();
+        
+        if (data.success) {
+            let buttonsHtml = '';
+            data.buttons.forEach(button => {
+                buttonsHtml += `
+                    <button type="button" class="quick-btn px-2 py-1 text-xs font-medium rounded-md bg-blue-100 text-blue-800 hover:bg-blue-200 dark:bg-blue-900 dark:text-blue-200 dark:hover:bg-blue-800"
+                            data-content="${button.service_content}">
+                        ${button.button_text}
+                    </button>
+                `;
+            });
+            container.innerHTML = buttonsHtml;
+            
+            // 새로 생성된 버튼들에 이벤트 리스너 추가
+            addQuickButtonListeners();
+        }
+    } catch (error) {
+        console.error('빠른 입력 버튼 로드 오류:', error);
+    }
+}
+
+// 빠른 입력 버튼 클릭 이벤트 추가
+function addQuickButtonListeners() {
+    document.querySelectorAll('.quick-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const content = this.getAttribute('data-content');
+            const serviceDetailTextarea = document.getElementById('service_detail');
+            
+            // 기존 내용이 있으면 쉼표와 공백 후 추가, 없으면 바로 추가
+            if (serviceDetailTextarea.value.trim()) {
+                serviceDetailTextarea.value += ', ' + content;
+            } else {
+                serviceDetailTextarea.value = content;
+            }
+            
+            // 포커스를 textarea로 이동
+            serviceDetailTextarea.focus();
+        });
+    });
+}
+
+// 희망일시 입력 시 확정일시에 자동 복사
+document.getElementById('requested_date').addEventListener('change', function() {
+    const requestedDate = this.value;
+    const scheduledDateInput = document.getElementById('scheduled_date');
+    
+    // 확정 일시가 비어있을 때만 자동 복사
+    if (requestedDate && !scheduledDateInput.value) {
+        scheduledDateInput.value = requestedDate;
+    }
+});
+
+// 페이지 로드 시 초기화
+document.addEventListener('DOMContentLoaded', function() {
+    document.getElementById('department').dispatchEvent(new Event('change'));
+    addQuickButtonListeners();
+});
+</script>
+{% endblock %}

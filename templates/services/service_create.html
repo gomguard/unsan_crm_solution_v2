@@ -1,0 +1,1338 @@
+{% extends 'base.html' %}
+
+{% block title %}서비스 요청 생성{% endblock %}
+
+{% block content %}
+<div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-12">
+    <div class="flex items-center justify-between mb-8">
+        <div>
+            <h1 class="text-2xl font-semibold leading-6 text-gray-900 dark:text-white">새 서비스 요청</h1>
+            <p class="mt-2 text-sm text-gray-700 dark:text-gray-300">고객 서비스 요청을 등록합니다</p>
+        </div>
+        <a href="{% url 'services:service_list' %}" class="rounded-md bg-white dark:bg-gray-700 px-3 py-2 text-sm font-semibold text-gray-900 dark:text-gray-100 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600">
+            목록으로
+        </a>
+    </div>
+
+    <form id="serviceForm" class="space-y-12">
+        {% csrf_token %}
+        
+        <!-- 1. 고객 검색 섹션 -->
+        <div class="grid grid-cols-1 gap-x-8 gap-y-10 border-b border-gray-900/10 pb-12 md:grid-cols-3 dark:border-white/10">
+            <div>
+                <div class="flex items-center mb-2">
+                    <div class="flex h-8 w-8 items-center justify-center rounded-full bg-indigo-600 text-sm font-medium text-white mr-3">1</div>
+                    <h2 class="text-base/7 font-semibold text-gray-900 dark:text-white">기존 고객 검색</h2>
+                </div>
+                <p class="mt-1 text-sm/6 text-gray-600 dark:text-gray-400">이름, 연락처, 차량번호로 기존 고객을 검색하여 정보를 자동으로 입력할 수 있습니다.</p>
+            </div>
+
+            <div class="grid max-w-2xl grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6 md:col-span-2">
+                <div class="col-span-full">
+                    <label for="customer_search" class="block text-sm/6 font-medium text-gray-900 dark:text-white">고객 검색</label>
+                    <div class="mt-2 relative">
+                        <input type="text" id="customer_search" placeholder="예: 홍길동, 010-1234-5678, 12가3456"
+                               class="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900 outline outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6 dark:bg-white/5 dark:text-white dark:outline-white/10 dark:placeholder:text-gray-500 dark:focus:outline-indigo-500">
+                        
+                        <!-- 검색 결과 드롭다운 -->
+                        <div id="search_results" class="absolute z-50 mt-1 w-full bg-white dark:bg-gray-800 shadow-lg max-h-60 rounded-md border border-gray-200 dark:border-gray-600 py-1 text-base ring-1 ring-black ring-opacity-5 overflow-auto focus:outline-none sm:text-sm" style="display: none;">
+                            <!-- 검색 결과가 여기에 표시됩니다 -->
+                        </div>
+                    </div>
+                    <p class="mt-3 text-sm/6 text-gray-600 dark:text-gray-400">기존 고객 정보가 없으면 아래에 직접 입력하세요</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 2. 고객 정보 섹션 -->
+        <div class="grid grid-cols-1 gap-x-8 gap-y-10 border-b border-gray-900/10 pb-12 md:grid-cols-3 dark:border-white/10">
+            <div>
+                <div class="flex items-center mb-2">
+                    <div class="flex h-8 w-8 items-center justify-center rounded-full bg-blue-600 text-sm font-medium text-white mr-3">2</div>
+                    <h2 class="text-base/7 font-semibold text-gray-900 dark:text-white">고객 정보</h2>
+                </div>
+                <p class="mt-1 text-sm/6 text-gray-600 dark:text-gray-400">서비스를 요청하는 고객의 기본 정보를 입력하세요.</p>
+            </div>
+
+            <div class="grid max-w-2xl grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6 md:col-span-2">
+                <div class="sm:col-span-3">
+                    <label for="customer_name" class="block text-sm/6 font-medium text-gray-900 dark:text-white">고객명</label>
+                    <div class="mt-2">
+                        <input type="text" id="customer_name" name="customer_name" placeholder="미확인시 공란 가능" value="{% if preselected_customer %}{{ preselected_customer.name }}{% endif %}"
+                               class="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900 outline outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6 dark:bg-white/5 dark:text-white dark:outline-white/10 dark:placeholder:text-gray-500 dark:focus:outline-indigo-500">
+                    </div>
+                </div>
+                
+                <div class="sm:col-span-3">
+                    <label for="customer_phone" class="block text-sm/6 font-medium text-gray-900 dark:text-white">연락처 <span class="text-red-500">*</span></label>
+                    <div class="mt-2">
+                        <input type="tel" id="customer_phone" name="customer_phone" required placeholder="예: 010-1234-5678" value="{% if preselected_customer %}{{ preselected_customer.phone }}{% endif %}"
+                               class="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900 outline outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6 dark:bg-white/5 dark:text-white dark:outline-white/10 dark:placeholder:text-gray-500 dark:focus:outline-indigo-500">
+                    </div>
+                </div>
+                
+                <div class="sm:col-span-2">
+                    <label for="customer_city" class="block text-sm/6 font-medium text-gray-900 dark:text-white">시/도</label>
+                    <div class="mt-2 relative">
+                        <select id="customer_city" name="customer_city" 
+                               class="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900 outline outline-1 -outline-offset-1 outline-gray-300 focus:outline focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6 dark:bg-white/5 dark:text-white dark:outline-white/10 dark:focus:outline-indigo-500">
+                            <option value="-" style="display:none;">-</option>
+                            <option value="경기도" selected>경기도</option>
+                            <option value="서울특별시">서울특별시</option>
+                            <option value="부산광역시">부산광역시</option>
+                            <option value="대구광역시">대구광역시</option>
+                            <option value="인천광역시">인천광역시</option>
+                            <option value="광주광역시">광주광역시</option>
+                            <option value="대전광역시">대전광역시</option>
+                            <option value="울산광역시">울산광역시</option>
+                            <option value="세종특별자치시">세종특별자치시</option>
+                            <option value="강원도">강원도</option>
+                            <option value="충청북도">충청북도</option>
+                            <option value="충청남도">충청남도</option>
+                            <option value="전라북도">전라북도</option>
+                            <option value="전라남도">전라남도</option>
+                            <option value="경상북도">경상북도</option>
+                            <option value="경상남도">경상남도</option>
+                            <option value="제주특별자치도">제주특별자치도</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="sm:col-span-2">
+                    <label for="customer_district" class="block text-sm/6 font-medium text-gray-900 dark:text-white">시/군/구</label>
+                    <div class="mt-2 relative">
+                        <input type="text" id="customer_district" name="customer_district" placeholder="시/도 선택 후 입력" list="districts" value="광명시"
+                               class="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900 outline outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6 dark:bg-white/5 dark:text-white dark:outline-white/10 dark:placeholder:text-gray-500 dark:focus:outline-indigo-500">
+                        <datalist id="districts">
+                        </datalist>
+                    </div>
+                </div>
+                
+                <div class="sm:col-span-2">
+                    <label for="customer_dong" class="block text-sm/6 font-medium text-gray-900 dark:text-white">행정동</label>
+                    <div class="mt-2 relative">
+                        <input type="text" id="customer_dong" name="customer_dong" placeholder="행정동 선택" list="dongs"
+                               class="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900 outline outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6 dark:bg-white/5 dark:text-white dark:outline-white/10 dark:placeholder:text-gray-500 dark:focus:outline-indigo-500">
+                        <datalist id="dongs">
+                        </datalist>
+                    </div>
+                </div>
+                
+                <div class="sm:col-span-full">
+                    <div class="flex items-center">
+                        <input type="checkbox" id="skip_address" name="skip_address"
+                               class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-600 dark:border-gray-600 dark:bg-gray-700 dark:ring-offset-gray-900 dark:focus:ring-indigo-600">
+                        <label for="skip_address" class="ml-3 text-sm font-medium text-gray-900 dark:text-gray-300">
+                            주소 미입력 (고객이 주소를 제공하지 않은 경우)
+                        </label>
+                    </div>
+                    <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">체크 시 모든 주소 필드가 '-'로 저장됩니다</p>
+                </div>
+            </div>
+        </div>
+
+        
+        <!-- 3. 차량 정보 섹션 -->
+        <div class="grid grid-cols-1 gap-x-8 gap-y-10 border-b border-gray-900/10 pb-12 md:grid-cols-3 dark:border-white/10">
+            <div>
+                <div class="flex items-center mb-2">
+                    <div class="flex h-8 w-8 items-center justify-center rounded-full bg-green-600 text-sm font-medium text-white mr-3">3</div>
+                    <h2 class="text-base/7 font-semibold text-gray-900 dark:text-white">차량 정보</h2>
+                </div>
+                <p class="mt-1 text-sm/6 text-gray-600 dark:text-gray-400">서비스를 받을 차량의 정보를 입력하세요.</p>
+            </div>
+
+            <div class="grid max-w-2xl grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6 md:col-span-2">
+                <div class="col-span-full">
+                    <label for="vehicle_number" class="block text-sm/6 font-medium text-gray-900 dark:text-white">차량번호 <span class="text-red-500">*</span></label>
+                    <div class="mt-2">
+                        <input type="text" id="vehicle_number" name="vehicle_number" required placeholder="예: 12가3456"
+                               class="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900 outline outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6 dark:bg-white/5 dark:text-white dark:outline-white/10 dark:placeholder:text-gray-500 dark:focus:outline-indigo-500">
+                    </div>
+                </div>
+                
+                <div class="sm:col-span-3">
+                    <label for="vehicle_model" class="block text-sm/6 font-medium text-gray-900 dark:text-white">차량 모델</label>
+                    <div class="mt-2">
+                        <input type="text" id="vehicle_model" name="vehicle_model" placeholder="예: 소나타, 아반떼"
+                               class="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900 outline outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6 dark:bg-white/5 dark:text-white dark:outline-white/10 dark:placeholder:text-gray-500 dark:focus:outline-indigo-500">
+                    </div>
+                </div>
+                
+                <div class="sm:col-span-3">
+                    <label for="vehicle_year" class="block text-sm/6 font-medium text-gray-900 dark:text-white">연식</label>
+                    <div class="mt-2">
+                        <input type="number" id="vehicle_year" name="vehicle_year" min="1990" max="2030" placeholder="예: 2020"
+                               class="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900 outline outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6 dark:bg-white/5 dark:text-white dark:outline-white/10 dark:placeholder:text-gray-500 dark:focus:outline-indigo-500">
+                    </div>
+                </div>
+                
+                <div class="col-span-full">
+                    <label for="vehicle_mileage" class="block text-sm/6 font-medium text-gray-900 dark:text-white">주행거리 (km)</label>
+                    <div class="mt-2">
+                        <input type="number" id="vehicle_mileage" name="vehicle_mileage" min="0" placeholder="예: 50000"
+                               class="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900 outline outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6 dark:bg-white/5 dark:text-white dark:outline-white/10 dark:placeholder:text-gray-500 dark:focus:outline-indigo-500">
+                    </div>
+                </div>
+                
+            </div>
+        </div>
+
+        
+        <!-- 서비스 템플릿 섹션 -->
+        <div class="grid grid-cols-1 gap-x-8 gap-y-10 border-b border-gray-900/10 pb-12 md:grid-cols-3 dark:border-white/10">
+            <div>
+                <div class="flex items-center mb-2">
+                    <div class="flex h-8 w-8 items-center justify-center rounded-full bg-teal-600 text-sm font-medium text-white mr-3">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                        </svg>
+                    </div>
+                    <h2 class="text-base/7 font-semibold text-gray-900 dark:text-white">서비스 템플릿</h2>
+                </div>
+                <p class="mt-1 text-sm/6 text-gray-600 dark:text-gray-400">자주 사용하는 서비스 템플릿을 선택하면 관련 정보가 자동으로 입력됩니다.</p>
+            </div>
+
+            <div class="grid max-w-2xl grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6 md:col-span-2">
+                <!-- 자동차 검사 템플릿 -->
+                <div class="col-span-full">
+                    <h3 class="text-sm font-semibold text-gray-900 dark:text-white mb-3">🚗 자동차 검사</h3>
+                    <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                        <button type="button" class="template-btn inline-flex items-center justify-center px-4 py-3 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200"
+                                data-template="periodic_inspection">
+                            <svg class="w-4 h-4 mr-2 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            정기검사
+                        </button>
+                        
+                        <button type="button" class="template-btn inline-flex items-center justify-center px-4 py-3 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200"
+                                data-template="comprehensive_inspection">
+                            <svg class="w-4 h-4 mr-2 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                            </svg>
+                            종합검사
+                        </button>
+                        
+                        <button type="button" class="template-btn inline-flex items-center justify-center px-4 py-3 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200"
+                                data-template="comprehensive_inspection_nox">
+                            <svg class="w-4 h-4 mr-2 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M16 4v10.54a2 2 0 01-1.632 1.960l-6 1.1A2 2 0 016 15.632V8a2 2 0 011.632-1.96l6-1.1A2 2 0 0116 6.968z" />
+                            </svg>
+                            종합검사(NOx)
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- 정비 서비스 템플릿 -->
+                <div class="col-span-full">
+                    <h3 class="text-sm font-semibold text-gray-900 dark:text-white mb-3">🔧 정비 서비스</h3>
+                    <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                        <button type="button" class="template-btn inline-flex items-center justify-center px-4 py-3 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200"
+                                data-template="engine_oil_change">
+                            <svg class="w-4 h-4 mr-2 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547" />
+                            </svg>
+                            엔진오일 교환
+                        </button>
+                        
+                        <button type="button" class="template-btn inline-flex items-center justify-center px-4 py-3 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200"
+                                data-template="brake_check">
+                            <svg class="w-4 h-4 mr-2 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.464 0L4.35 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                            </svg>
+                            브레이크 점검
+                        </button>
+                        
+                        <button type="button" class="template-btn inline-flex items-center justify-center px-4 py-3 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200"
+                                data-template="tire_check">
+                            <svg class="w-4 h-4 mr-2 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9" />
+                            </svg>
+                            타이어 점검
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- 보험 서비스 템플릿 -->
+                <div class="col-span-full">
+                    <h3 class="text-sm font-semibold text-gray-900 dark:text-white mb-3">📋 보험 서비스</h3>
+                    <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                        <button type="button" class="template-btn inline-flex items-center justify-center px-4 py-3 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200"
+                                data-template="insurance_renewal">
+                            <svg class="w-4 h-4 mr-2 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                            보험 갱신 상담
+                        </button>
+                        
+                        <button type="button" class="template-btn inline-flex items-center justify-center px-4 py-3 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200"
+                                data-template="insurance_claim">
+                            <svg class="w-4 h-4 mr-2 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.464 0L4.35 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                            </svg>
+                            보험 접수 처리
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 4. 서비스 정보 섹션 -->
+        <div class="grid grid-cols-1 gap-x-8 gap-y-10 border-b border-gray-900/10 pb-12 md:grid-cols-3 dark:border-white/10">
+            <div>
+                <div class="flex items-center mb-2">
+                    <div class="flex h-8 w-8 items-center justify-center rounded-full bg-purple-600 text-sm font-medium text-white mr-3">4</div>
+                    <h2 class="text-base/7 font-semibold text-gray-900 dark:text-white">서비스 정보</h2>
+                </div>
+                <p class="mt-1 text-sm/6 text-gray-600 dark:text-gray-400">고객이 요청한 서비스의 종류와 세부 사항을 입력하세요.</p>
+            </div>
+
+            <div class="grid max-w-2xl grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6 md:col-span-2">
+                <div class="sm:col-span-3">
+                    <label for="service_category" class="block text-sm/6 font-medium text-gray-900 dark:text-white">서비스 유형 <span class="text-red-500">*</span></label>
+                    <div class="mt-2 grid grid-cols-1">
+                        <select id="service_category" name="service_category" required
+                                class="col-start-1 row-start-1 w-full appearance-none rounded-md bg-white py-1.5 pl-3 pr-8 text-base text-gray-900 outline outline-1 -outline-offset-1 outline-gray-300 focus:outline focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6 dark:bg-white/5 dark:text-white dark:outline-white/10 dark:*:bg-gray-800 dark:focus:outline-indigo-500">
+                            <option value="">서비스를 선택하세요</option>
+                            <option value="engine_oil">엔진오일교환</option>
+                            <option value="maintenance">정비 점검</option>
+                            <option value="car_inspection">자동차검사</option>
+                            <option value="insurance">보험미팅</option>
+                            <option value="other">기타</option>
+                        </select>
+                        <svg viewBox="0 0 16 16" fill="currentColor" data-slot="icon" aria-hidden="true" class="pointer-events-none col-start-1 row-start-1 mr-2 size-5 self-center justify-self-end text-gray-500 sm:size-4 dark:text-gray-400">
+                            <path d="M4.22 6.22a.75.75 0 0 1 1.06 0L8 8.94l2.72-2.72a.75.75 0 1 1 1.06 1.06l-3.25 3.25a.75.75 0 0 1-1.06 0L4.22 7.28a.75.75 0 0 1 0-1.06Z" clip-rule="evenodd" fill-rule="evenodd" />
+                        </svg>
+                    </div>
+                </div>
+                
+                <div class="sm:col-span-3">
+                    <label for="priority" class="block text-sm/6 font-medium text-gray-900 dark:text-white">우선순위</label>
+                    <div class="mt-2 grid grid-cols-1">
+                        <select id="priority" name="priority"
+                                class="col-start-1 row-start-1 w-full appearance-none rounded-md bg-white py-1.5 pl-3 pr-8 text-base text-gray-900 outline outline-1 -outline-offset-1 outline-gray-300 focus:outline focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6 dark:bg-white/5 dark:text-white dark:outline-white/10 dark:*:bg-gray-800 dark:focus:outline-indigo-500">
+                            {% for value, label in priority_choices %}
+                            <option value="{{ value }}" {% if value == 'normal' %}selected{% endif %}>{{ label }}</option>
+                            {% endfor %}
+                        </select>
+                        <svg viewBox="0 0 16 16" fill="currentColor" data-slot="icon" aria-hidden="true" class="pointer-events-none col-start-1 row-start-1 mr-2 size-5 self-center justify-self-end text-gray-500 sm:size-4 dark:text-gray-400">
+                            <path d="M4.22 6.22a.75.75 0 0 1 1.06 0L8 8.94l2.72-2.72a.75.75 0 1 1 1.06 1.06l-3.25 3.25a.75.75 0 0 1-1.06 0L4.22 7.28a.75.75 0 0 1 0-1.06Z" clip-rule="evenodd" fill-rule="evenodd" />
+                        </svg>
+                    </div>
+                </div>
+                
+                <div class="col-span-full">
+                    <label for="service_detail" class="block text-sm/6 font-medium text-gray-900 dark:text-white">세부설명</label>
+                    <div class="mt-2">
+                        <textarea id="service_detail" name="service_detail" rows="3" placeholder="예시) 에어컨가스 충전, 미션오일 교체, 브레이크패드 점검, 자차보험 갱신상담 등"
+                                  class="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900 outline outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6 dark:bg-white/5 dark:text-white dark:outline-white/10 dark:placeholder:text-gray-500 dark:focus:outline-indigo-500"></textarea>
+                    </div>
+                    <p class="mt-3 text-sm/6 text-gray-600 dark:text-gray-400">구체적인 서비스 항목을 입력하세요.</p>
+                </div>
+                
+                <div class="sm:col-span-3">
+                    <label for="estimated_price" class="block text-sm/6 font-medium text-gray-900 dark:text-white">예상 가격 (원)</label>
+                    <div class="mt-2">
+                        <input type="number" id="estimated_price" name="estimated_price" min="0" step="1000" placeholder="예: 50000"
+                               class="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900 outline outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6 dark:bg-white/5 dark:text-white dark:outline-white/10 dark:placeholder:text-gray-500 dark:focus:outline-indigo-500">
+                    </div>
+                </div>
+                
+                <div class="sm:col-span-3">
+                    <label for="status" class="block text-sm/6 font-medium text-gray-900 dark:text-white">상태</label>
+                    <div class="mt-2 grid grid-cols-1">
+                        <select id="status" name="status"
+                                class="col-start-1 row-start-1 w-full appearance-none rounded-md bg-white py-1.5 pl-3 pr-8 text-base text-gray-900 outline outline-1 -outline-offset-1 outline-gray-300 focus:outline focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6 dark:bg-white/5 dark:text-white dark:outline-white/10 dark:*:bg-gray-800 dark:focus:outline-indigo-500">
+                            {% for value, label in status_choices %}
+                            <option value="{{ value }}" {% if value == 'pending' %}selected{% endif %}>{{ label }}</option>
+                            {% endfor %}
+                        </select>
+                        <svg viewBox="0 0 16 16" fill="currentColor" data-slot="icon" aria-hidden="true" class="pointer-events-none col-start-1 row-start-1 mr-2 size-5 self-center justify-self-end text-gray-500 sm:size-4 dark:text-gray-400">
+                            <path d="M4.22 6.22a.75.75 0 0 1 1.06 0L8 8.94l2.72-2.72a.75.75 0 1 1 1.06 1.06l-3.25 3.25a.75.75 0 0 1-1.06 0L4.22 7.28a.75.75 0 0 1 0-1.06Z" clip-rule="evenodd" fill-rule="evenodd" />
+                        </svg>
+                    </div>
+                </div>
+                
+                <div class="sm:col-span-3">
+                    <label for="requested_date" class="block text-sm/6 font-medium text-gray-900 dark:text-white">희망 예약 일시</label>
+                    <div class="mt-2">
+                        <input type="datetime-local" id="requested_date" name="requested_date"
+                               class="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900 outline outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6 dark:bg-white/5 dark:text-white dark:outline-white/10 dark:placeholder:text-gray-500 dark:focus:outline-indigo-500">
+                    </div>
+                </div>
+                
+                <div class="col-span-full">
+                    <label for="description" class="block text-sm/6 font-medium text-gray-900 dark:text-white">요청 내용</label>
+                    <div class="mt-2">
+                        <textarea id="description" name="description" rows="4" placeholder="예시) 에어컨이 시원하지 않음, 변속이 부드럽지 않음, 보험료 견적 문의, 서비스 후 만족도 확인 등"
+                                  class="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900 outline outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6 dark:bg-white/5 dark:text-white dark:outline-white/10 dark:placeholder:text-gray-500 dark:focus:outline-indigo-500"></textarea>
+                    </div>
+                    <p class="mt-3 text-sm/6 text-gray-600 dark:text-gray-400">고객의 요청사항이나 증상을 상세히 기록하세요.</p>
+                </div>
+            </div>
+        </div>
+
+        
+        <!-- 5. 담당자 정보 섹션 -->
+        <div class="grid grid-cols-1 gap-x-8 gap-y-10 md:grid-cols-3">
+            <div>
+                <div class="flex items-center mb-2">
+                    <div class="flex h-8 w-8 items-center justify-center rounded-full bg-orange-600 text-sm font-medium text-white mr-3">5</div>
+                    <h2 class="text-base/7 font-semibold text-gray-900 dark:text-white">담당자 정보</h2>
+                </div>
+                <p class="mt-1 text-sm/6 text-gray-600 dark:text-gray-400">서비스를 담당할 부서와 직원을 선택하세요.</p>
+            </div>
+
+            <div class="grid max-w-2xl grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6 md:col-span-2">
+                <div class="sm:col-span-3">
+                    <label for="department" class="block text-sm/6 font-medium text-gray-900 dark:text-white">부서</label>
+                    <div class="mt-2 grid grid-cols-1">
+                        <select id="department" name="department"
+                                class="col-start-1 row-start-1 w-full appearance-none rounded-md bg-white py-1.5 pl-3 pr-8 text-base text-gray-900 outline outline-1 -outline-offset-1 outline-gray-300 focus:outline focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6 dark:bg-white/5 dark:text-white dark:outline-white/10 dark:*:bg-gray-800 dark:focus:outline-indigo-500">
+                            <option value="">부서를 선택하세요</option>
+                            <option value="engine_oil">엔진오일팀</option>
+                            <option value="insurance">보험영업팀</option>
+                            <option value="admin">관리부서</option>
+                            <option value="happycall">해피콜팀</option>
+                        </select>
+                        <svg viewBox="0 0 16 16" fill="currentColor" data-slot="icon" aria-hidden="true" class="pointer-events-none col-start-1 row-start-1 mr-2 size-5 self-center justify-self-end text-gray-500 sm:size-4 dark:text-gray-400">
+                            <path d="M4.22 6.22a.75.75 0 0 1 1.06 0L8 8.94l2.72-2.72a.75.75 0 1 1 1.06 1.06l-3.25 3.25a.75.75 0 0 1-1.06 0L4.22 7.28a.75.75 0 0 1 0-1.06Z" clip-rule="evenodd" fill-rule="evenodd" />
+                        </svg>
+                    </div>
+                </div>
+                
+                <div class="sm:col-span-3">
+                    <label for="assigned_employee" class="block text-sm/6 font-medium text-gray-900 dark:text-white">담당자</label>
+                    <div class="mt-2 grid grid-cols-1">
+                        <select id="assigned_employee" name="assigned_employee"
+                                class="col-start-1 row-start-1 w-full appearance-none rounded-md bg-white py-1.5 pl-3 pr-8 text-base text-gray-900 outline outline-1 -outline-offset-1 outline-gray-300 focus:outline focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6 dark:bg-white/5 dark:text-white dark:outline-white/10 dark:*:bg-gray-800 dark:focus:outline-indigo-500">
+                            <option value="">담당자를 선택하세요</option>
+                            {% for employee in employees %}
+                            <option value="{{ employee.id }}" data-department="{{ employee.department.name }}" style="display:none;">
+                                {{ employee.last_name }}{{ employee.first_name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                        <svg viewBox="0 0 16 16" fill="currentColor" data-slot="icon" aria-hidden="true" class="pointer-events-none col-start-1 row-start-1 mr-2 size-5 self-center justify-self-end text-gray-500 sm:size-4 dark:text-gray-400">
+                            <path d="M4.22 6.22a.75.75 0 0 1 1.06 0L8 8.94l2.72-2.72a.75.75 0 1 1 1.06 1.06l-3.25 3.25a.75.75 0 0 1-1.06 0L4.22 7.28a.75.75 0 0 1 0-1.06Z" clip-rule="evenodd" fill-rule="evenodd" />
+                        </svg>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+
+    <!-- Action Buttons -->
+    <div class="mt-12 border-t border-gray-200 dark:border-gray-700 pt-8">
+        <div class="flex items-center justify-between">
+            <div class="flex items-center text-sm text-gray-500 dark:text-gray-400">
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                모든 필수 항목을 입력했는지 확인하세요
+            </div>
+            <div class="flex items-center gap-x-4">
+                <a href="{% url 'services:service_list' %}" class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-colors duration-200">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                    취소
+                </a>
+                <button type="submit" form="serviceForm" class="inline-flex items-center px-6 py-2 text-sm font-semibold text-white bg-indigo-600 dark:bg-indigo-500 border border-transparent rounded-lg shadow-sm hover:bg-indigo-700 dark:hover:bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                    </svg>
+                    서비스 요청 생성
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let searchTimeout;
+
+// 고객 검색 기능
+document.getElementById('customer_search').addEventListener('input', function() {
+    const query = this.value.trim();
+    console.log('DEBUG: 검색 입력됨:', query);
+    
+    clearTimeout(searchTimeout);
+    
+    if (query.length < 2) {
+        console.log('DEBUG: 검색어가 2글자 미만');
+        hideSearchResults();
+        return;
+    }
+    
+    console.log('DEBUG: 300ms 후 검색 시작 예정');
+    searchTimeout = setTimeout(async () => {
+        console.log('DEBUG: 실제 검색 시작');
+        try {
+            const url = `{% url "services:customer_search_api" %}?q=${encodeURIComponent(query)}&type=all`;
+            console.log('DEBUG: API 호출 URL:', url);
+            
+            const response = await fetch(url);
+            console.log('DEBUG: API 응답 상태:', response.status);
+            
+            const result = await response.json();
+            console.log('DEBUG: API 응답 데이터:', result);
+            
+            if (result.success) {
+                console.log('DEBUG: 검색 성공, 결과 개수:', result.customers.length);
+                showSearchResults(result.customers);
+            } else {
+                console.log('DEBUG: 검색 실패:', result.message);
+                hideSearchResults();
+            }
+        } catch (error) {
+            console.error('DEBUG: Search error:', error);
+            hideSearchResults();
+        }
+    }, 300); // 300ms 딜레이
+});
+
+function showSearchResults(customers) {
+    const resultsDiv = document.getElementById('search_results');
+    
+    if (customers.length === 0) {
+        resultsDiv.style.display = 'none';
+        return;
+    }
+    
+    resultsDiv.innerHTML = '';
+    
+    customers.forEach(customer => {
+        const item = document.createElement('div');
+        item.className = 'cursor-pointer select-none relative py-2 pl-3 pr-9 hover:bg-gray-100 dark:hover:bg-gray-600';
+        const displayName = `${customer.customer_name} (${customer.customer_phone})`;
+        const vehicleInfo = customer.vehicle_number ? ` - ${customer.vehicle_number}` : '';
+        const modelInfo = customer.vehicle_model ? customer.vehicle_model : '';
+        const yearInfo = customer.vehicle_year ? ` (${customer.vehicle_year}년)` : '';
+        
+        item.innerHTML = `
+            <div class="font-medium text-gray-900 dark:text-white">${displayName}${vehicleInfo}</div>
+            <div class="text-sm text-gray-500 dark:text-gray-400">
+                ${modelInfo}${yearInfo}
+            </div>
+        `;
+        
+        item.addEventListener('click', () => selectCustomer(customer));
+        resultsDiv.appendChild(item);
+    });
+    
+    resultsDiv.style.display = 'block';
+}
+
+function hideSearchResults() {
+    document.getElementById('search_results').style.display = 'none';
+}
+
+function selectCustomer(customer) {
+    // 폼 필드에 고객 정보 자동 입력
+    document.getElementById('customer_name').value = customer.customer_name || '';
+    document.getElementById('customer_phone').value = customer.customer_phone || '';
+    
+    // 주소 정보 자동 입력
+    if (customer.customer_city) {
+        document.getElementById('customer_city').value = customer.customer_city;
+        // 시/도 변경 이벤트 발생시켜 시/군/구 옵션 업데이트
+        document.getElementById('customer_city').dispatchEvent(new Event('change'));
+    }
+    if (customer.customer_district) {
+        // 약간의 지연을 두고 시/군/구 값 설정 (시/도 옵션 업데이트 후)
+        setTimeout(() => {
+            document.getElementById('customer_district').value = customer.customer_district;
+            document.getElementById('customer_district').dispatchEvent(new Event('change'));
+            
+            // 행정동도 지연 설정
+            if (customer.customer_dong) {
+                setTimeout(() => {
+                    document.getElementById('customer_dong').value = customer.customer_dong;
+                }, 100);
+            }
+        }, 100);
+    }
+    
+    // 차량 정보 자동 입력
+    document.getElementById('vehicle_number').value = customer.vehicle_number || '';
+    document.getElementById('vehicle_model').value = customer.vehicle_model || '';
+    document.getElementById('vehicle_year').value = customer.vehicle_year || '';
+    document.getElementById('vehicle_mileage').value = '';
+    
+    // 자동차 검사 정보 자동 입력 (만약 고객 검색 API에서 이 정보도 반환한다면)
+    
+    // 검색창 클리어하고 결과 숨기기
+    document.getElementById('customer_search').value = '';
+    hideSearchResults();
+    
+    // 서비스 유형 필드로 포커스 이동
+    document.getElementById('service_category').focus();
+}
+
+// 검색 결과 외부 클릭시 숨기기
+document.addEventListener('click', function(e) {
+    if (!document.querySelector('.relative').contains(e.target)) {
+        hideSearchResults();
+    }
+});
+
+document.getElementById('serviceForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    const data = Object.fromEntries(formData.entries());
+    
+    // 빈 값 제거
+    Object.keys(data).forEach(key => {
+        if (data[key] === '') {
+            delete data[key];
+        }
+    });
+    
+    try {
+        const response = await fetch('{% url "services:service_create_api" %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            },
+            body: JSON.stringify(data)
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            alert(result.message);
+            window.location.href = '{% url "services:service_list" %}';
+        } else {
+            alert('오류: ' + result.message);
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('서버 오류가 발생했습니다.');
+    }
+});
+
+// 전화번호 자동 포맷팅
+document.getElementById('customer_phone').addEventListener('input', function() {
+    let value = this.value.replace(/[^0-9]/g, ''); // 숫자만 남기기
+    
+    if (value.length >= 3) {
+        if (value.length <= 7) {
+            // 010-1234 형태
+            value = value.substring(0, 3) + '-' + value.substring(3);
+        } else {
+            // 010-1234-5678 형태
+            value = value.substring(0, 3) + '-' + value.substring(3, 7) + '-' + value.substring(7, 11);
+        }
+    }
+    
+    this.value = value;
+});
+
+// 전화번호 필드에서 붙여넣기 처리
+document.getElementById('customer_phone').addEventListener('paste', function(e) {
+    setTimeout(() => {
+        let value = this.value.replace(/[^0-9]/g, '');
+        
+        if (value.length >= 3) {
+            if (value.length <= 7) {
+                value = value.substring(0, 3) + '-' + value.substring(3);
+            } else {
+                value = value.substring(0, 3) + '-' + value.substring(3, 7) + '-' + value.substring(7, 11);
+            }
+        }
+        
+        this.value = value;
+    }, 0);
+});
+
+// 페이지 로드시 현재 로그인한 사용자를 기본 담당자로 설정
+document.addEventListener('DOMContentLoaded', function() {
+    const currentUserId = '{{ user.id }}';
+    const currentUserDepartment = '{{ user.department.name|default:"" }}';
+    const isAdmin = '{{ user.is_superuser }}' === 'True';
+    
+    console.log('현재 사용자 정보:', {
+        userId: currentUserId,
+        department: currentUserDepartment,
+        isAdmin: isAdmin
+    });
+    
+    // admin 사용자이거나 부서 정보가 있는 경우 자동 선택
+    if (isAdmin || currentUserDepartment) {
+        const departmentSelect = document.getElementById('department');
+        const assigneeSelect = document.getElementById('assigned_employee');
+        
+        // admin인 경우 admin 부서 기본 선택
+        if (isAdmin) {
+            departmentSelect.value = 'admin';
+        } else if (currentUserDepartment) {
+            departmentSelect.value = currentUserDepartment;
+        }
+        
+        // 부서 선택 후 담당자 필터링 실행
+        departmentSelect.dispatchEvent(new Event('change'));
+        
+        // 잠시 후 현재 사용자를 담당자로 선택 (필터링이 완료된 후)
+        setTimeout(() => {
+            if (currentUserId) {
+                const currentUserOption = assigneeSelect.querySelector(`option[value="${currentUserId}"]`);
+                if (currentUserOption) {
+                    currentUserOption.style.display = 'block';
+                    assigneeSelect.value = currentUserId;
+                    console.log('담당자 자동 선택됨:', currentUserId);
+                }
+            }
+        }, 100);
+    }
+});
+
+// 부서에 따른 담당자 필터링
+document.getElementById('department').addEventListener('change', function() {
+    const selectedDepartment = this.value;
+    const assigneeSelect = document.getElementById('assigned_employee');
+    const currentUserId = '{{ user.id }}';
+    
+    console.log('부서 변경됨:', selectedDepartment);
+    console.log('담당자 옵션 개수:', assigneeSelect.options.length);
+    
+    // 모든 담당자 옵션 숨기기
+    Array.from(assigneeSelect.options).forEach(option => {
+        if (option.value === '') {
+            option.style.display = 'block';
+            return;
+        }
+        
+        const employeeDepartment = option.dataset.department;
+        console.log('직원:', option.text, '부서:', employeeDepartment);
+        
+        // 부서 매핑 확인
+        let shouldShow = false;
+        if (!selectedDepartment) {
+            shouldShow = false; // 부서가 선택되지 않으면 모든 담당자 숨김
+        } else if (selectedDepartment === 'engine_oil' && employeeDepartment === 'engine_oil') {
+            shouldShow = true;
+        } else if (selectedDepartment === 'insurance' && employeeDepartment === 'insurance') {
+            shouldShow = true;
+        } else if (selectedDepartment === 'admin' && employeeDepartment === 'admin') {
+            shouldShow = true;
+        } else if (selectedDepartment === 'happycall' && employeeDepartment === 'happycall') {
+            shouldShow = true;
+        }
+        
+        console.log('표시여부:', shouldShow);
+        option.style.display = shouldShow ? 'block' : 'none';
+    });
+    
+    // 담당자 선택 초기화 후, 현재 사용자가 해당 부서에 있다면 자동 선택
+    assigneeSelect.selectedIndex = 0;
+    console.log('담당자 자동선택 시도:', currentUserId, selectedDepartment);
+    if (currentUserId && selectedDepartment) {
+        const currentUserOption = assigneeSelect.querySelector(`option[value="${currentUserId}"]`);
+        console.log('현재 사용자 옵션 찾음:', currentUserOption);
+        if (currentUserOption && currentUserOption.dataset.department === selectedDepartment) {
+            console.log('부서 매치됨, 자동 선택');
+            assigneeSelect.value = currentUserId;
+        }
+    }
+});
+
+// 서비스 템플릿 기능
+document.addEventListener('DOMContentLoaded', function() {
+    // 템플릿 정의
+    const templates = {
+        // 자동차 검사 템플릿
+        'periodic_inspection': {
+            service_category: 'car_inspection',
+            service_detail: '정기검사 - 배기가스 검사, 안전검사',
+            description: '',
+            estimated_price: 30000,
+            priority: 'high',
+            status: 'completed',
+            requested_date: (() => {
+                const now = new Date();
+                const year = now.getFullYear();
+                const month = String(now.getMonth() + 1).padStart(2, '0');
+                const date = String(now.getDate()).padStart(2, '0');
+                const hours = String(now.getHours()).padStart(2, '0');
+                const minutes = String(now.getMinutes()).padStart(2, '0');
+                return `${year}-${month}-${date}T${hours}:${minutes}`;
+            })() // 정확한 현재 시간
+        },
+        'comprehensive_inspection': {
+            service_category: 'car_inspection', 
+            service_detail: '종합검사 - 차량 전반적인 안전성 검사',
+            description: '',
+            estimated_price: 59000,
+            priority: 'high',
+            status: 'completed',
+            requested_date: (() => {
+                const now = new Date();
+                const year = now.getFullYear();
+                const month = String(now.getMonth() + 1).padStart(2, '0');
+                const date = String(now.getDate()).padStart(2, '0');
+                const hours = String(now.getHours()).padStart(2, '0');
+                const minutes = String(now.getMinutes()).padStart(2, '0');
+                return `${year}-${month}-${date}T${hours}:${minutes}`;
+            })() // 정확한 현재 시간
+        },
+        'comprehensive_inspection_nox': {
+            service_category: 'car_inspection', 
+            service_detail: '종합검사(NOx) - NOx 배출가스 검사 포함',
+            description: '',
+            estimated_price: 69000,
+            priority: 'high',
+            status: 'completed',
+            requested_date: (() => {
+                const now = new Date();
+                const year = now.getFullYear();
+                const month = String(now.getMonth() + 1).padStart(2, '0');
+                const date = String(now.getDate()).padStart(2, '0');
+                const hours = String(now.getHours()).padStart(2, '0');
+                const minutes = String(now.getMinutes()).padStart(2, '0');
+                return `${year}-${month}-${date}T${hours}:${minutes}`;
+            })() // 정확한 현재 시간
+        },
+        
+        // 정비 서비스 템플릿
+        'engine_oil_change': {
+            service_category: 'engine_oil',
+            service_detail: '엔진오일 교환, 오일 필터 교체',
+            description: '정기 엔진오일 교환 (5,000km 주기)',
+            estimated_price: 80000,
+            priority: 'normal'
+        },
+        'brake_check': {
+            service_category: 'maintenance',
+            service_detail: '브레이크 패드, 디스크 점검 및 교체',
+            description: '브레이크 소음 발생으로 인한 점검',
+            estimated_price: 150000,
+            priority: 'high'
+        },
+        'tire_check': {
+            service_category: 'maintenance',
+            service_detail: '타이어 마모도 점검, 공기압 체크',
+            description: '타이어 교체 시기 점검 및 상담',
+            estimated_price: 300000,
+            priority: 'normal'
+        },
+        
+        // 보험 서비스 템플릿
+        'insurance_renewal': {
+            service_category: 'insurance',
+            service_detail: '자동차보험 갱신 상담 및 견적',
+            description: '보험 만료일 도래로 인한 갱신 상담',
+            estimated_price: 0,
+            priority: 'normal'
+        },
+        'insurance_claim': {
+            service_category: 'insurance',
+            service_detail: '자동차보험 사고 접수 처리',
+            description: '교통사고로 인한 보험 접수 및 처리',
+            estimated_price: 0,
+            priority: 'urgent'
+        }
+    };
+    
+    // 템플릿 버튼 클릭 이벤트
+    document.querySelectorAll('.template-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const templateId = this.dataset.template;
+            const template = templates[templateId];
+            
+            if (template) {
+                // 시각적 피드백
+                this.classList.add('bg-indigo-50', 'dark:bg-indigo-900', 'border-indigo-300', 'dark:border-indigo-600');
+                setTimeout(() => {
+                    this.classList.remove('bg-indigo-50', 'dark:bg-indigo-900', 'border-indigo-300', 'dark:border-indigo-600');
+                }, 1000);
+                
+                // 폼 필드 자동 입력
+                Object.keys(template).forEach(key => {
+                    const field = document.getElementById(key);
+                    if (field) {
+                        field.value = template[key];
+                        
+                        // 필드 하이라이트 효과
+                        field.classList.add('ring-2', 'ring-green-500', 'ring-opacity-50');
+                        setTimeout(() => {
+                            field.classList.remove('ring-2', 'ring-green-500', 'ring-opacity-50');
+                        }, 1500);
+                    }
+                });
+                
+                // 서비스 카테고리가 변경되면 부서도 자동 선택
+                if (template.service_category) {
+                    const serviceCategory = template.service_category;
+                    let department = '';
+                    
+                    switch(serviceCategory) {
+                        case 'engine_oil':
+                            department = 'engine_oil';
+                            break;
+                        case 'maintenance':
+                            department = 'engine_oil'; // 정비도 엔진오일팀에서 처리
+                            break;
+                        case 'car_inspection':
+                            department = 'admin'; // 자동차검사는 관리부서에서 처리
+                            break;
+                        case 'insurance':
+                            department = 'insurance';
+                            break;
+                    }
+                    
+                    if (department) {
+                        document.getElementById('department').value = department;
+                        // 부서 변경 이벤트 발생시켜 담당자 필터링 실행
+                        document.getElementById('department').dispatchEvent(new Event('change'));
+                    }
+                }
+                
+                // 성공 메시지
+                const successMsg = document.createElement('div');
+                successMsg.className = 'fixed top-4 right-4 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg z-50';
+                successMsg.textContent = `${this.textContent} 템플릿이 적용되었습니다`;
+                document.body.appendChild(successMsg);
+                
+                setTimeout(() => {
+                    successMsg.remove();
+                }, 3000);
+            }
+        });
+    });
+});
+
+// 한국 지역 자동완성 기능
+document.addEventListener('DOMContentLoaded', function() {
+    const citySelect = document.getElementById('customer_city');
+    const districtInput = document.getElementById('customer_district');
+    const districtDatalist = document.getElementById('districts');
+    const dongInput = document.getElementById('customer_dong');
+    const dongDatalist = document.getElementById('dongs');
+    
+    // 시/군/구 데이터
+    const districts = {
+        '서울특별시': [
+            '강남구', '강동구', '강북구', '강서구', '관악구', '광진구', '구로구', '금천구',
+            '노원구', '도봉구', '동대문구', '동작구', '마포구', '서대문구', '서초구', '성동구',
+            '성북구', '송파구', '양천구', '영등포구', '용산구', '은평구', '종로구', '중구', '중랑구'
+        ],
+        '부산광역시': [
+            '강서구', '금정구', '기장군', '남구', '동구', '동래구', '부산진구', '북구',
+            '사상구', '사하구', '서구', '수영구', '연제구', '영도구', '중구', '해운대구'
+        ],
+        '대구광역시': [
+            '남구', '달서구', '달성군', '동구', '북구', '서구', '수성구', '중구'
+        ],
+        '인천광역시': [
+            '강화군', '계양구', '남동구', '동구', '미추홀구', '부평구', '서구', '연수구', '옹진군', '중구'
+        ],
+        '광주광역시': [
+            '광산구', '남구', '동구', '북구', '서구'
+        ],
+        '대전광역시': [
+            '대덕구', '동구', '서구', '유성구', '중구'
+        ],
+        '울산광역시': [
+            '남구', '동구', '북구', '울주군', '중구'
+        ],
+        '세종특별자치시': [
+            '세종시'
+        ],
+        '경기도': [
+            '가평군', '고양시 덕양구', '고양시 일산동구', '고양시 일산서구', '과천시', '광명시', '광주시', '구리시',
+            '군포시', '김포시', '남양주시', '동두천시', '부천시', '성남시 분당구', '성남시 수정구', '성남시 중원구',
+            '수원시 권선구', '수원시 영통구', '수원시 장안구', '수원시 팔달구', '시흥시', '안산시 단원구', '안산시 상록구',
+            '안성시', '안양시 동안구', '안양시 만안구', '양주시', '양평군', '여주시', '연천군', '오산시', '용인시 기흥구',
+            '용인시 수지구', '용인시 처인구', '의왕시', '의정부시', '이천시', '파주시', '평택시', '포천시', '하남시', '화성시'
+        ],
+        '강원도': [
+            '강릉시', '고성군', '동해시', '삼척시', '속초시', '양구군', '양양군', '영월군',
+            '원주시', '인제군', '정선군', '철원군', '춘천시', '태백시', '평창군', '홍천군', '화천군', '횡성군'
+        ],
+        '충청북도': [
+            '괴산군', '단양군', '보은군', '영동군', '옥천군', '음성군', '제천시', '증평군', '진천군', '청주시 상당구',
+            '청주시 서원구', '청주시 청원구', '청주시 흥덕구', '충주시'
+        ],
+        '충청남도': [
+            '계룡시', '공주시', '금산군', '논산시', '당진시', '보령시', '부여군', '서산시', '서천군', '아산시',
+            '예산군', '천안시 동남구', '천안시 서북구', '청양군', '태안군', '홍성군'
+        ],
+        '전라북도': [
+            '고창군', '군산시', '김제시', '남원시', '무주군', '부안군', '순창군', '완주군', '익산시',
+            '임실군', '장수군', '전주시 덕진구', '전주시 완산구', '정읍시', '진안군'
+        ],
+        '전라남도': [
+            '강진군', '고흥군', '곡성군', '광양시', '구례군', '나주시', '담양군', '목포시', '무안군',
+            '보성군', '순천시', '신안군', '여수시', '영광군', '영암군', '완도군', '장성군', '장흥군',
+            '진도군', '함평군', '해남군', '화순군'
+        ],
+        '경상북도': [
+            '경산시', '경주시', '고령군', '구미시', '군위군', '김천시', '문경시', '봉화군', '상주시',
+            '성주군', '안동시', '영덕군', '영양군', '영주시', '영천시', '예천군', '울릉군', '울진군',
+            '의성군', '청도군', '청송군', '칠곡군', '포항시 남구', '포항시 북구'
+        ],
+        '경상남도': [
+            '거제시', '거창군', '고성군', '김해시', '남해군', '밀양시', '사천시', '산청군', '양산시',
+            '의령군', '진주시', '창녕군', '창원시 마산합포구', '창원시 마산회원구', '창원시 성산구',
+            '창원시 의창구', '창원시 진해구', '통영시', '하동군', '함안군', '함양군', '합천군'
+        ],
+        '제주특별자치도': [
+            '서귀포시', '제주시'
+        ]
+    };
+    
+    // 행정동 데이터 (주요 시/군/구)
+    const dongs = {
+        '광명시': [
+            '광명동', '노온사동', '소하동', '옥길동', '일직동', '철산동', '하안동'
+        ],
+        '수원시 영통구': [
+            '영통1동', '영통2동', '태장동', '망포동', '매탄1동', '매탄2동', '매탄3동', '매탄4동', '원천동', '하동', '광교동'
+        ],
+        '수원시 팔달구': [
+            '행궁동', '매교동', '매산동', '고등동', '화서1동', '화서2동', '지동', '우만1동', '우만2동', '인계동'
+        ],
+        '수원시 장안구': [
+            '파장동', '율천동', '정자1동', '정자2동', '정자3동', '영화동', '송죽동', '조원1동', '조원2동', '연무동'
+        ],
+        '수원시 권선구': [
+            '권선1동', '권선2동', '서둔동', '평동', '입북동', '구운동', '금곡동', '호매실동', '세류1동', '세류2동', '세류3동'
+        ],
+        '성남시 분당구': [
+            '분당동', '수내1동', '수내2동', '수내3동', '정자1동', '정자2동', '정자3동', '서현1동', '서현2동', 
+            '이매1동', '이매2동', '야탑1동', '야탑2동', '야탑3동', '백현동', '구미1동', '구미2동', '판교동'
+        ],
+        '성남시 수정구': [
+            '태평1동', '태평2동', '태평3동', '태평4동', '수진1동', '수진2동', '신흥1동', '신흥2동', '신흥3동', '복정동', '위례동'
+        ],
+        '성남시 중원구': [
+            '성남동', '중앙동', '금광1동', '금광2동', '은행1동', '은행2동', '상대원1동', '상대원2동', '상대원3동', '하대원동', '도촌동'
+        ],
+        '고양시 일산동구': [
+            '장항1동', '장항2동', '식사동', '정발산동', '마두1동', '마두2동', '백석1동', '백석2동', '풍산동'
+        ],
+        '고양시 일산서구': [
+            '주엽1동', '주엽2동', '탄현동', '일산1동', '일산2동', '일산3동', '대화동'
+        ],
+        '고양시 덕양구': [
+            '창릉동', '고양동', '원당동', '화정1동', '화정2동', '행신1동', '행신2동', '행신3동'
+        ],
+        '용인시 수지구': [
+            '풍덕천1동', '풍덕천2동', '신봉동', '죽전1동', '죽전2동', '상현1동', '상현2동', '동천동'
+        ],
+        '용인시 기흥구': [
+            '신갈동', '기흥동', '서농동', '구갈동', '보라동', '상갈동', '영덕동', '청덕동', '마북동'
+        ],
+        '용인시 처인구': [
+            '중앙동', '김량장동', '포곡읍', '모현읍', '백암면', '양지면', '원삼면', '이동읍', '남사면'
+        ],
+        '안양시 만안구': [
+            '안양1동', '안양2동', '안양3동', '안양4동', '안양5동', '안양6동', '안양7동', '안양8동', '안양9동', '석수1동', '석수2동', '석수3동'
+        ],
+        '안양시 동안구': [
+            '비산1동', '비산2동', '비산3동', '관양1동', '관양2동', '평촌동', '귀인동', '부림동', '달안동', '범계동'
+        ],
+        '강남구': [
+            '신사동', '논현1동', '논현2동', '압구정동', '청담동', '삼성1동', '삼성2동', '대치1동', '대치2동', '대치4동',
+            '역삼1동', '역삼2동', '도곡1동', '도곡2동', '개포1동', '개포2동', '개포4동', '세곡동', '일원본동', '일원1동', '일원2동', '수서동'
+        ],
+        '강서구': [
+            '염창동', '등촌1동', '등촌2동', '등촌3동', '화곡1동', '화곡2동', '화곡3동', '화곡4동', '화곡6동', '화곡8동',
+            '가양1동', '가양2동', '가양3동', '발산1동', '우장산동', '공항동', '방화1동', '방화2동', '방화3동'
+        ],
+        '서초구': [
+            '서초1동', '서초2동', '서초3동', '서초4동', '잠원동', '반포본동', '반포1동', '반포2동', '반포3동', 
+            '반포4동', '방배본동', '방배1동', '방배2동', '방배3동', '방배4동', '양재1동', '양재2동', '내곡동'
+        ],
+        '송파구': [
+            '풍납1동', '풍납2동', '거여1동', '거여2동', '마천1동', '마천2동', '방이1동', '방이2동', 
+            '오금동', '송파1동', '송파2동', '석촌동', '삼전동', '가락본동', '가락1동', '가락2동', 
+            '문정1동', '문정2동', '장지동', '위례동'
+        ],
+        '강동구': [
+            '강일동', '상일동', '명일1동', '명일2동', '고덕1동', '고덕2동', '암사1동', '암사2동', '암사3동',
+            '천호1동', '천호2동', '천호3동', '성내1동', '성내2동', '성내3동', '둔촌1동', '둔촌2동'
+        ],
+        '부천시': [
+            '중1동', '중2동', '중3동', '중4동', '소사본동', '소사1동', '소사2동', '송내1동', '송내2동',
+            '상동', '상1동', '상2동', '상3동', '원미1동', '원미2동', '춘의동', '신흥동', '심곡본동', 
+            '심곡1동', '심곡2동', '역곡1동', '역곡2동', '괴안동', '오정동'
+        ],
+        '평택시': [
+            '중앙동', '서정동', '지산동', '비전동', '세교동', '고덕동', '신장1동', '신장2동', '서탄동',
+            '통복동', '용이동', '진위면', '서탄면', '고덕면', '오성면', '청북읍', '안중읍', '포승읍', '현덕면'
+        ],
+        '안산시 단원구': [
+            '호수동', '대부동', '선부1동', '선부2동', '선부3동', '월피동', '신길동', '고잔1동', '고잔2동',
+            '와동', '원시동', '초지동', '원곡본동', '원곡1동', '원곡2동', '화정동'
+        ],
+        '안산시 상록구': [
+            '일동', '이동', '사동', '부곡동', '월곡동', '건건동', '성포동', '반월동', '해봉동', '팔곡1동', '팔곡2동'
+        ],
+        '시흥시': [
+            '대야동', '신천동', '신현동', '은행동', '매화동', '정왕본동', '정왕1동', '정왕2동', '정왕3동', '정왕4동', '능곡동'
+        ],
+        '김포시': [
+            '사우동', '풍무동', '장기동', '고촌읍', '양촌읍', '대곶면', '월곶면', '하성면', '통진읍'
+        ]
+    };
+    
+    // 시/군/구 옵션 업데이트 함수
+    function updateDistricts(selectedCity, setDefault = false) {
+        console.log('updateDistricts 호출됨:', selectedCity, 'setDefault:', setDefault);
+        if (!setDefault) {
+            districtInput.value = ''; // 기존 입력 초기화
+            dongInput.value = ''; // 행정동도 초기화
+        }
+        districtDatalist.innerHTML = ''; // 기존 옵션 초기화
+        dongDatalist.innerHTML = ''; // 행정동 옵션도 초기화
+        
+        if (selectedCity && districts[selectedCity]) {
+            console.log('시/군/구 옵션 추가 중:', districts[selectedCity].length, '개');
+            // 해당 시/도의 시/군/구 옵션 추가
+            let optionsHTML = '';
+            districts[selectedCity].forEach(district => {
+                optionsHTML += `<option value="${district}"></option>`;
+            });
+            districtDatalist.innerHTML = optionsHTML;
+            
+            districtInput.placeholder = `${selectedCity}의 시/군/구 입력`;
+            districtInput.disabled = false;
+        } else {
+            console.log('시/도 데이터 없음:', selectedCity);
+            districtInput.placeholder = '시/도 선택 후 입력';
+            districtInput.disabled = false;
+        }
+        
+        // 경기도이고 기본값 설정시 광명시 선택
+        if (selectedCity === '경기도' && setDefault) {
+            console.log('경기도 기본값 설정: 광명시');
+            districtInput.value = '광명시';
+            // updateDongs는 초기 로딩에서 별도로 처리하므로 여기서는 호출하지 않음
+        }
+    }
+    
+    // 행정동 옵션 업데이트 함수
+    function updateDongs(selectedDistrict, setDefault = false) {
+        console.log('updateDongs 호출됨:', selectedDistrict, 'setDefault:', setDefault);
+        console.log('호출 스택:', new Error().stack.split('\n')[1]);
+        // setDefault가 false이고 현재 선택된 시/군/구가 다를 때만 초기화
+        if (!setDefault && selectedDistrict !== '광명시') {
+            dongInput.value = ''; // 기존 입력 초기화
+            console.log('행정동 값 초기화됨');
+        }
+        dongDatalist.innerHTML = ''; // 기존 옵션 초기화
+        console.log('행정동 옵션 초기화됨');
+        
+        if (selectedDistrict && dongs[selectedDistrict]) {
+            console.log('행정동 데이터 찾음:', dongs[selectedDistrict]);
+            // 해당 시/군/구의 행정동 옵션 추가
+            let optionsHTML = '';
+            dongs[selectedDistrict].forEach(dong => {
+                optionsHTML += `<option value="${dong}"></option>`;
+                console.log('행정동 옵션 추가됨:', dong);
+            });
+            dongDatalist.innerHTML = optionsHTML;
+            
+            dongInput.placeholder = `${selectedDistrict}의 행정동 입력`;
+            dongInput.disabled = false;
+            console.log('행정동 총', dongs[selectedDistrict].length, '개 옵션 추가 완료');
+            
+            // 기본값 설정은 하지 않음 (사용자가 선택할 수 있도록)
+        } else {
+            console.log('행정동 데이터 없음:', selectedDistrict);
+            dongInput.placeholder = '시/군/구 선택 후 입력';
+            dongInput.disabled = false;
+        }
+    }
+    
+    // 시/도 선택 시 시/군/구 옵션 업데이트
+    citySelect.addEventListener('change', function() {
+        console.log('시/도 변경됨:', this.value);
+        updateDistricts(this.value);
+    });
+    
+    // 페이지 로딩 시 초기 시/도 값에 따라 시/군/구 옵션 로드
+    console.log('=== 페이지 초기화 시작 ===');
+    console.log('citySelect element:', citySelect);
+    console.log('districtDatalist element:', districtDatalist);
+    console.log('districts data:', districts);
+    
+    const initialCity = citySelect.value;
+    console.log('초기 시/도 값:', initialCity);
+    
+    if (initialCity && initialCity !== '-') {
+        console.log('초기 시/도 값으로 시/군/구 옵션 로드 시작:', initialCity);
+        console.log('해당 시/도의 시/군/구 데이터:', districts[initialCity]);
+        
+        if (districts[initialCity]) {
+            console.log('시/군/구 데이터 존재, 옵션 추가 중...');
+            let optionsHTML = '';
+            districts[initialCity].forEach((district, index) => {
+                optionsHTML += `<option value="${district}"></option>`;
+                console.log(`옵션 ${index + 1} 추가:`, district);
+            });
+            districtDatalist.innerHTML = optionsHTML;
+            console.log('최종 datalist HTML:', districtDatalist.innerHTML);
+            console.log('datalist 자식 요소 개수:', districtDatalist.children.length);
+        }
+        
+        // 초기 시/군/구 값이 있다면 행정동 옵션도 로드
+        const initialDistrict = districtInput.value;
+        if (initialDistrict && initialDistrict !== '-') {
+            console.log('초기 시/군/구 값으로 행정동 옵션 로드:', initialDistrict);
+            console.log('광명시 행정동 데이터:', dongs['광명시']);
+            setTimeout(() => {
+                updateDongs(initialDistrict, true); // setDefault=true로 호출
+                // 옵션 추가 후 확인
+                setTimeout(() => {
+                    console.log('행정동 datalist 최종 상태:');
+                    console.log('- innerHTML:', dongDatalist.innerHTML);
+                    console.log('- children 개수:', dongDatalist.children.length);
+                    Array.from(dongDatalist.children).forEach((option, i) => {
+                        console.log(`  옵션 ${i+1}:`, option.value);
+                    });
+                }, 50);
+            }, 100);
+        }
+    }
+    
+    // 3초 후 상태 재확인
+    setTimeout(checkDatalistOptions, 3000);
+    
+    // preselected_customer가 있는 경우 주소 정보 자동 설정
+    {% if preselected_customer %}
+    const preselectedCustomer = {
+        name: '{{ preselected_customer.name|escapejs }}',
+        phone: '{{ preselected_customer.phone|escapejs }}',
+        {% if preselected_customer.address_main %}
+        address_parts: '{{ preselected_customer.address_main|escapejs }}'.split(' ')
+        {% endif %}
+    };
+    
+    // 주소가 있는 경우 파싱해서 설정
+    if (preselectedCustomer.address_parts && preselectedCustomer.address_parts.length >= 2) {
+        const city = preselectedCustomer.address_parts[0];
+        const district = preselectedCustomer.address_parts[1];
+        const dong = preselectedCustomer.address_parts.length > 2 ? preselectedCustomer.address_parts[2] : '';
+        
+        // 시/도 설정
+        if (citySelect) {
+            citySelect.value = city;
+            updateDistricts(city, true);
+        }
+        
+        // 시/군/구와 행정동 설정 (약간의 지연)
+        setTimeout(() => {
+            if (district) {
+                districtInput.value = district;
+                updateDongs(district, true);
+                
+                if (dong) {
+                    setTimeout(() => {
+                        dongInput.value = dong;
+                    }, 100);
+                }
+            }
+        }, 200);
+    }
+    {% endif %}
+    
+    // 시/군/구 입력 시 행정동 옵션 업데이트
+    districtInput.addEventListener('input', function() {
+        console.log('시/군/구 입력됨 (input 이벤트):', this.value);
+        updateDongs(this.value);
+    });
+    
+    // 시/군/구 자동완성 선택 시 행정동 옵션 업데이트
+    districtInput.addEventListener('change', function() {
+        console.log('시/군/구 변경됨 (change 이벤트):', this.value);
+        updateDongs(this.value);
+    });
+    
+    // datalist 옵션 확인 함수 (디버깅용)
+    function checkDatalistOptions() {
+        console.log('=== Datalist 옵션 상태 확인 ===');
+        console.log('districts 옵션 개수:', districtDatalist.children.length);
+        Array.from(districtDatalist.children).forEach((option, index) => {
+            console.log(`District ${index}:`, option.value);
+        });
+        console.log('dongs 옵션 개수:', dongDatalist.children.length);
+        Array.from(dongDatalist.children).forEach((option, index) => {
+            console.log(`Dong ${index}:`, option.value);
+        });
+        console.log('================================');
+    }
+    
+    // 페이지 로드시 기본값 설정
+    console.log('페이지 로드됨, 기본 시/도:', citySelect.value);
+    updateDistricts(citySelect.value, true);
+    
+    // 3초 후 datalist 상태 확인
+    setTimeout(() => {
+        console.log('3초 후 datalist 상태:');
+        checkDatalistOptions();
+    }, 3000);
+    
+    // 주소 미입력 체크박스 기능
+    const skipAddressCheckbox = document.getElementById('skip_address');
+    const addressFields = [citySelect, districtInput, dongInput];
+    
+    // 원래 값들 저장
+    let originalValues = {
+        city: citySelect.value,
+        district: districtInput.value,
+        dong: dongInput.value
+    };
+    
+    skipAddressCheckbox.addEventListener('change', function() {
+        if (this.checked) {
+            console.log('주소 미입력 체크됨');
+            // 현재 값들 저장
+            originalValues = {
+                city: citySelect.value,
+                district: districtInput.value,
+                dong: dongInput.value
+            };
+            
+            // 모든 주소 필드를 '-'로 설정하고 비활성화
+            citySelect.value = '-';
+            districtInput.value = '-';
+            dongInput.value = '-';
+            
+            addressFields.forEach(field => {
+                field.disabled = true;
+                field.style.backgroundColor = '#f3f4f6';
+                field.style.color = '#6b7280';
+            });
+        } else {
+            console.log('주소 미입력 체크 해제됨');
+            // 원래 값들 복원
+            citySelect.value = originalValues.city;
+            districtInput.value = originalValues.district;
+            dongInput.value = originalValues.dong;
+            
+            addressFields.forEach(field => {
+                field.disabled = false;
+                field.style.backgroundColor = '';
+                field.style.color = '';
+            });
+            
+            // 시/도 변경 이벤트 발생시켜 옵션 업데이트
+            if (originalValues.city) {
+                updateDistricts(originalValues.city, false);
+                if (originalValues.district) {
+                    setTimeout(() => {
+                        updateDongs(originalValues.district, false);
+                    }, 100);
+                }
+            }
+        }
+    });
+});
+</script>
+{% endblock %}

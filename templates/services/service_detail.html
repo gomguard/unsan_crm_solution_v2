@@ -1,0 +1,299 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}서비스 요청 상세 - {{ service.customer.name|default:service.temp_customer_name }}{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 dark:bg-gray-900 py-6">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <!-- 헤더 -->
+        <div class="bg-white dark:bg-gray-800 shadow-sm rounded-lg mb-6">
+            <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h1 class="text-2xl font-bold text-gray-900 dark:text-white">{{ service.service_type.name }}</h1>
+                        {% if service.service_detail %}
+                        <p class="mt-1 text-sm font-medium text-gray-700 dark:text-gray-300">{{ service.service_detail }}</p>
+                        {% endif %}
+                        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                            서비스 요청 #{{ service.id }} · {{ service.created_at|date:"Y년 m월 d일 H:i" }} 접수 · 입력자: {{ service.created_by.get_full_name|default:service.created_by.username }}
+                        </p>
+                    </div>
+                    <div class="flex items-center space-x-3">
+                        <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium
+                            {% if service.status == 'completed' %}bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200
+                            {% elif service.status == 'in_progress' %}bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200
+                            {% elif service.status == 'pending' %}bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200
+                            {% else %}bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200{% endif %}">
+                            {{ service.get_status_display }}
+                        </span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 액션 버튼들 -->
+            <div class="px-6 py-4 bg-gray-50 dark:bg-gray-700/50">
+                <div class="flex items-center justify-between">
+                    <a href="{% url 'services:service_list' %}" 
+                       class="inline-flex items-center px-3 py-2 border border-gray-300 dark:border-gray-600 shadow-sm text-sm font-medium rounded-md text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700">
+                        <svg class="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+                        </svg>
+                        목록으로
+                    </a>
+                    
+                    <div class="flex items-center space-x-3">
+                        <a href="{% url 'services:service_edit' service.id %}"
+                           class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700">
+                            <svg class="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                            </svg>
+                            수정
+                        </a>
+                        
+                        {% if service.status != 'completed' and service.status != 'cancelled' %}
+                        <select id="status-change-select" class="rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white px-3 py-2 text-sm font-medium shadow-sm focus:border-indigo-500 focus:ring-indigo-500" 
+                                data-current-status="{{ service.status }}">
+                            <option value="">상태 변경</option>
+                            <option value="pending" {% if service.status == 'pending' %}disabled{% endif %}>접수대기</option>
+                            <option value="scheduled" {% if service.status == 'scheduled' %}disabled{% endif %}>일정확정</option>
+                            <option value="in_progress" {% if service.status == 'in_progress' %}disabled{% endif %}>진행중</option>
+                            <option value="completed" {% if service.status == 'completed' %}disabled{% endif %}>완료</option>
+                            <option value="cancelled" {% if service.status == 'cancelled' %}disabled{% endif %}>취소</option>
+                        </select>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 고객 및 차량 정보 -->
+        <div class="bg-white dark:bg-gray-800 shadow-sm rounded-lg mb-6">
+            <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+                <h3 class="text-lg font-medium text-gray-900 dark:text-white">고객 및 차량 정보</h3>
+            </div>
+            <div class="px-6 py-4">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <!-- 고객 정보 -->
+                    <div>
+                        <h4 class="text-sm font-medium text-gray-900 dark:text-white mb-3">고객 정보</h4>
+                        <div class="space-y-2">
+                            <div class="flex justify-between">
+                                <span class="text-sm text-gray-500 dark:text-gray-400">고객명</span>
+                                <span class="text-sm text-gray-900 dark:text-white">
+                                    {% if service.customer %}
+                                        <a href="{% url 'customers:customer_detail' service.customer.pk %}" class="text-indigo-600 hover:text-indigo-500 dark:text-indigo-400 dark:hover:text-indigo-300">
+                                            {{ service.customer.name }}
+                                        </a>
+                                    {% else %}
+                                        {{ service.temp_customer_name|default:"미등록 고객" }}
+                                    {% endif %}
+                                </span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-sm text-gray-500 dark:text-gray-400">연락처</span>
+                                <span class="text-sm text-gray-900 dark:text-white">
+                                    {% if service.customer %}{{ service.customer.phone }}{% else %}{{ service.temp_customer_phone }}{% endif %}
+                                </span>
+                            </div>
+                            {% if service.customer.get_full_address or service.temp_customer_city %}
+                            <div class="flex justify-between">
+                                <span class="text-sm text-gray-500 dark:text-gray-400">주소</span>
+                                <span class="text-sm text-gray-900 dark:text-white">
+                                    {% if service.customer %}
+                                        {{ service.customer.get_full_address }}
+                                    {% else %}
+                                        {{ service.temp_customer_city }} {{ service.temp_customer_district }} {{ service.temp_customer_dong }}
+                                    {% endif %}
+                                </span>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <!-- 차량 정보 -->
+                    <div>
+                        <h4 class="text-sm font-medium text-gray-900 dark:text-white mb-3">차량 정보</h4>
+                        <div class="space-y-2">
+                            <div class="flex justify-between">
+                                <span class="text-sm text-gray-500 dark:text-gray-400">차량번호</span>
+                                <span class="text-sm text-gray-900 dark:text-white">
+                                    {% if service.vehicle %}
+                                        {% with service.vehicle.vehicle_number|slice:":3" as plate_prefix %}
+                                            <span class="inline-flex items-center px-2 py-1 text-xs font-medium rounded
+                                                {% if plate_prefix|slice:"2:" == '가' %}bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200
+                                                {% elif plate_prefix|slice:"2:" == '나' %}bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200
+                                                {% else %}bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200{% endif %}">
+                                                {{ service.vehicle.vehicle_number }}
+                                            </span>
+                                        {% endwith %}
+                                    {% elif service.temp_vehicle_number %}
+                                        <span class="inline-flex items-center px-2 py-1 text-xs font-medium rounded bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200">
+                                            {{ service.temp_vehicle_number }}
+                                        </span>
+                                    {% else %}
+                                        미등록
+                                    {% endif %}
+                                </span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-sm text-gray-500 dark:text-gray-400">차종</span>
+                                <span class="text-sm text-gray-900 dark:text-white">
+                                    {% if service.vehicle.model %}{{ service.vehicle.model }}
+                                    {% elif service.temp_vehicle_model %}{{ service.temp_vehicle_model }}
+                                    {% else %}미등록{% endif %}
+                                </span>
+                            </div>
+                            {% if service.estimated_price %}
+                            <div class="flex justify-between">
+                                <span class="text-sm text-gray-500 dark:text-gray-400">예상금액</span>
+                                <span class="text-sm font-medium text-gray-900 dark:text-white">{{ service.estimated_price|floatformat:0|intcomma }}원</span>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 서비스 상세 정보 -->
+        <div class="bg-white dark:bg-gray-800 shadow-sm rounded-lg mb-6">
+            <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+                <h3 class="text-lg font-medium text-gray-900 dark:text-white">서비스 정보</h3>
+            </div>
+            <div class="px-6 py-4">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div class="space-y-2">
+                        <div class="flex justify-between">
+                            <span class="text-sm text-gray-500 dark:text-gray-400">서비스 유형</span>
+                            <span class="text-sm text-gray-900 dark:text-white">
+                                {{ service.service_type.name }}
+                                <span class="text-xs text-gray-500 dark:text-gray-400">({{ service.service_type.get_category_display }})</span>
+                            </span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-sm text-gray-500 dark:text-gray-400">우선순위</span>
+                            <span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium 
+                                {% if service.priority == 'urgent' %}bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200
+                                {% elif service.priority == 'high' %}bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200
+                                {% elif service.priority == 'normal' %}bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200
+                                {% else %}bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200{% endif %}">
+                                {{ service.get_priority_display }}
+                            </span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-sm text-gray-500 dark:text-gray-400">접수 일시</span>
+                            <span class="text-sm text-gray-900 dark:text-white">{{ service.created_at|date:"Y.m.d H:i" }}</span>
+                        </div>
+                        {% if service.requested_date %}
+                        <div class="flex justify-between">
+                            <span class="text-sm text-gray-500 dark:text-gray-400">희망 일시</span>
+                            <span class="text-sm text-gray-900 dark:text-white">{{ service.requested_date|date:"Y.m.d H:i" }}</span>
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="space-y-2">
+                        <div class="flex justify-between">
+                            <span class="text-sm text-gray-500 dark:text-gray-400">담당 직원</span>
+                            <span class="text-sm text-gray-900 dark:text-white">
+                                {% if service.assigned_employee %}{{ service.assigned_employee.get_full_name }}{% else %}미지정{% endif %}
+                            </span>
+                        </div>
+                        {% if service.scheduled_date %}
+                        <div class="flex justify-between">
+                            <span class="text-sm text-gray-500 dark:text-gray-400">확정 일시</span>
+                            <span class="text-sm text-gray-900 dark:text-white">{{ service.scheduled_date|date:"Y.m.d H:i" }}</span>
+                        </div>
+                        {% endif %}
+                        <div class="flex justify-between">
+                            <span class="text-sm text-gray-500 dark:text-gray-400">접수자</span>
+                            <span class="text-sm text-gray-900 dark:text-white">{{ service.created_by.get_full_name }}</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-sm text-gray-500 dark:text-gray-400">마지막 수정</span>
+                            <span class="text-sm text-gray-900 dark:text-white">{{ service.updated_at|date:"Y.m.d H:i" }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        {% if service.service_detail or service.description %}
+        <!-- 서비스 내용 -->
+        <div class="bg-white dark:bg-gray-800 shadow-sm rounded-lg mb-6">
+            <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+                <h3 class="text-lg font-medium text-gray-900 dark:text-white">서비스 내용</h3>
+            </div>
+            <div class="px-6 py-4 space-y-4">
+                {% if service.service_detail %}
+                <div>
+                    <h4 class="text-sm font-medium text-gray-900 dark:text-white mb-2">서비스 상세</h4>
+                    <p class="text-sm text-gray-700 dark:text-gray-300">{{ service.service_detail|linebreaks }}</p>
+                </div>
+                {% endif %}
+                {% if service.description %}
+                <div>
+                    <h4 class="text-sm font-medium text-gray-900 dark:text-white mb-2">고객 요청사항</h4>
+                    <p class="text-sm text-gray-700 dark:text-gray-300">{{ service.description|linebreaks }}</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</main>
+
+<script>
+// 상태 변경 기능
+document.getElementById('status-change-select')?.addEventListener('change', async function() {
+    const newStatus = this.value;
+    const currentStatus = this.dataset.currentStatus;
+    
+    if (!newStatus || newStatus === currentStatus) {
+        this.value = '';
+        return;
+    }
+    
+    const statusLabels = {
+        'pending': '접수대기',
+        'scheduled': '일정확정', 
+        'in_progress': '진행중',
+        'completed': '완료',
+        'cancelled': '취소'
+    };
+    
+    if (!confirm(`상태를 "${statusLabels[newStatus]}"로 변경하시겠습니까?`)) {
+        this.value = '';
+        return;
+    }
+    
+    try {
+        const response = await fetch('{% url "services:update_service_status" service.id %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            },
+            body: JSON.stringify({
+                status: newStatus
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            alert(result.message);
+            location.reload();
+        } else {
+            alert('오류: ' + result.message);
+            this.value = '';
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('서버 오류가 발생했습니다.');
+        this.value = '';
+    }
+});
+</script>
+{% endblock %}
