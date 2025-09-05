@@ -1,0 +1,342 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}해피콜 상세정보{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 dark:bg-gray-900 py-8">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+        <!-- 헤더 -->
+        <div class="mb-8">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-3xl font-bold text-gray-900 dark:text-white">해피콜 내역</h1>
+                    <p class="mt-2 text-gray-600 dark:text-gray-400">
+                        {{ happycall.service_request.customer.name }} 고객님 - {{ happycall.get_call_stage_display }}
+                        {% if happycall.call_stage|slice:"-8:" == "_pending" %}
+                        <span class="ml-2 inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200">
+                            아직 통화 안함
+                        </span>
+                        {% endif %}
+                    </p>
+                </div>
+                <div class="flex space-x-3">
+                    <a href="{% url 'happycall:execute' happycall.pk %}" 
+                       class="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-md hover:bg-indigo-700">
+                        {% if 'completed' in happycall.call_stage or 'failed' in happycall.call_stage %}통화내용 수정{% else %}통화하기{% endif %}
+                    </a>
+                    <a href="{% url 'happycall:list' %}" 
+                       class="px-4 py-2 bg-gray-600 text-white text-sm font-medium rounded-md hover:bg-gray-700">
+                        목록으로
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- 기본 정보 -->
+            <div class="lg:col-span-2 space-y-6">
+                <!-- 해피콜 기본 정보 -->
+                <div class="bg-white dark:bg-gray-800 shadow-sm rounded-lg">
+                    <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+                        <h3 class="text-lg font-semibold text-gray-900 dark:text-white">기본 정보</h3>
+                    </div>
+                    <div class="p-6">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">콜 단계</dt>
+                                <dd class="mt-1">
+                                    <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full
+                                        {% if happycall.call_stage|slice:":3" == '1st' %}bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200
+                                        {% elif happycall.call_stage|slice:":3" == '2nd' %}bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200
+                                        {% elif happycall.call_stage|slice:":3" == '3rd' %}bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200
+                                        {% elif happycall.call_stage|slice:":3" == '4th' %}bg-pink-100 text-pink-800 dark:bg-pink-900 dark:text-pink-200
+                                        {% else %}bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200{% endif %}">
+                                        {{ happycall.get_call_stage_display }}
+                                    </span>
+                                </dd>
+                            </div>
+                            <div>
+                                <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">상태</dt>
+                                <dd class="mt-1">
+                                    <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full
+                                        {% if happycall.status == 'pending' %}bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200
+                                        {% elif happycall.status == 'in_progress' %}bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200
+                                        {% elif happycall.status == 'completed' %}bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200
+                                        {% elif happycall.status == 'failed' %}bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200
+                                        {% elif happycall.status == 'skip' %}bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200
+                                        {% else %}bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200{% endif %}">
+                                        {{ happycall.get_status_display }}
+                                    </span>
+                                </dd>
+                            </div>
+                            <div>
+                                <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">예약 일시</dt>
+                                <dd class="mt-1 text-sm text-gray-900 dark:text-white">
+                                    {% if happycall.call_stage|slice:":3" == '1st' %}{{ happycall.first_call_scheduled_date|date:"Y년 m월 d일 H:i"|default:"-" }}
+                                    {% elif happycall.call_stage|slice:":3" == '2nd' %}{{ happycall.second_call_scheduled_date|date:"Y년 m월 d일 H:i"|default:"-" }}
+                                    {% elif happycall.call_stage|slice:":3" == '3rd' %}{{ happycall.third_call_scheduled_date|date:"Y년 m월 d일 H:i"|default:"-" }}
+                                    {% elif happycall.call_stage|slice:":3" == '4th' %}{{ happycall.fourth_call_scheduled_date|date:"Y년 m월 d일 H:i"|default:"-" }}
+                                    {% else %}-{% endif %}
+                                </dd>
+                            </div>
+                            <div>
+                                <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">담당자</dt>
+                                <dd class="mt-1 text-sm text-gray-900 dark:text-white">
+                                    {% if happycall.call_stage|slice:":3" == '1st' %}{{ happycall.first_call_caller.get_full_name|default:happycall.first_call_caller.username|default:"-" }}
+                                    {% elif happycall.call_stage|slice:":3" == '2nd' %}{{ happycall.second_call_caller.get_full_name|default:happycall.second_call_caller.username|default:"-" }}
+                                    {% elif happycall.call_stage|slice:":3" == '3rd' %}{{ happycall.third_call_caller.get_full_name|default:happycall.third_call_caller.username|default:"-" }}
+                                    {% elif happycall.call_stage|slice:":3" == '4th' %}{{ happycall.fourth_call_caller.get_full_name|default:happycall.fourth_call_caller.username|default:"-" }}
+                                    {% else %}-{% endif %}
+                                </dd>
+                            </div>
+                            {% if happycall.call_stage|slice:":3" == '1st' and happycall.first_call_date %}
+                            <div>
+                                <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">완료 일시</dt>
+                                <dd class="mt-1 text-sm text-gray-900 dark:text-white">
+                                    {{ happycall.first_call_date|date:"Y년 m월 d일 H:i" }}
+                                </dd>
+                            </div>
+                            {% elif happycall.call_stage|slice:":3" == '2nd' and happycall.second_call_date %}
+                            <div>
+                                <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">완료 일시</dt>
+                                <dd class="mt-1 text-sm text-gray-900 dark:text-white">
+                                    {{ happycall.second_call_date|date:"Y년 m월 d일 H:i" }}
+                                </dd>
+                            </div>
+                            {% elif happycall.call_stage|slice:":3" == '3rd' and happycall.third_call_date %}
+                            <div>
+                                <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">완료 일시</dt>
+                                <dd class="mt-1 text-sm text-gray-900 dark:text-white">
+                                    {{ happycall.third_call_date|date:"Y년 m월 d일 H:i" }}
+                                </dd>
+                            </div>
+                            {% elif happycall.call_stage|slice:":3" == '4th' and happycall.fourth_call_date %}
+                            <div>
+                                <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">완료 일시</dt>
+                                <dd class="mt-1 text-sm text-gray-900 dark:text-white">
+                                    {{ happycall.fourth_call_date|date:"Y년 m월 d일 H:i" }}
+                                </dd>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 고객 정보 -->
+                <div class="bg-white dark:bg-gray-800 shadow-sm rounded-lg">
+                    <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+                        <h3 class="text-lg font-semibold text-gray-900 dark:text-white">고객 정보</h3>
+                    </div>
+                    <div class="p-6">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">고객명</dt>
+                                <dd class="mt-1 text-sm text-gray-900 dark:text-white">{{ happycall.service_request.customer.name }}</dd>
+                            </div>
+                            <div>
+                                <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">전화번호</dt>
+                                <dd class="mt-1 text-sm text-gray-900 dark:text-white">
+                                    {% if user.is_superuser %}
+                                        <a href="tel:{{ happycall.service_request.customer.phone }}" class="text-indigo-600 hover:text-indigo-500">
+                                            {{ happycall.service_request.customer.phone }}
+                                        </a>
+                                        <span class="ml-2 text-xs text-green-600">[통화가능]</span>
+                                    {% else %}
+                                        {{ happycall.service_request.customer.phone|slice:":3" }}****{{ happycall.service_request.customer.phone|slice:"-4:" }}
+                                        <span class="ml-2 text-xs text-gray-500">[권한필요]</span>
+                                    {% endif %}
+                                </dd>
+                            </div>
+                            <div>
+                                <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">주소</dt>
+                                <dd class="mt-1 text-sm text-gray-900 dark:text-white">{{ happycall.service_request.customer.get_full_address|default:"-" }}</dd>
+                            </div>
+                            <div>
+                                <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">차량</dt>
+                                <dd class="mt-1 text-sm text-gray-900 dark:text-white">
+                                    {% if happycall.service_request.vehicle %}
+                                        {{ happycall.service_request.vehicle.make }} {{ happycall.service_request.vehicle.model }} 
+                                        ({{ happycall.service_request.vehicle.license_plate }})
+                                    {% else %}
+                                        -
+                                    {% endif %}
+                                </dd>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 서비스 정보 -->
+                <div class="bg-white dark:bg-gray-800 shadow-sm rounded-lg">
+                    <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+                        <h3 class="text-lg font-semibold text-gray-900 dark:text-white">서비스 정보</h3>
+                    </div>
+                    <div class="p-6">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">서비스 유형</dt>
+                                <dd class="mt-1 text-sm text-gray-900 dark:text-white">
+                                    {{ happycall.service_request.get_service_type_display|default:happycall.service_request.service_type|default:"-" }}
+                                </dd>
+                            </div>
+                            <div>
+                                <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">서비스 일자</dt>
+                                <dd class="mt-1 text-sm text-gray-900 dark:text-white">
+                                    {{ happycall.service_request.completed_date|date:"Y년 m월 d일" }}
+                                </dd>
+                            </div>
+                            <div>
+                                <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">서비스 금액</dt>
+                                <dd class="mt-1 text-sm text-gray-900 dark:text-white">
+                                    {{ happycall.service_request.estimated_price|default:0|intcomma }}원
+                                </dd>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 해피콜 결과 -->
+                {% if result %}
+                <div class="bg-white dark:bg-gray-800 shadow-sm rounded-lg">
+                    <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+                        <h3 class="text-lg font-semibold text-gray-900 dark:text-white">해피콜 결과</h3>
+                    </div>
+                    <div class="p-6">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">통화 결과</dt>
+                                <dd class="mt-1 text-sm text-gray-900 dark:text-white">{{ result.get_contact_result_display }}</dd>
+                            </div>
+                            {% if result.satisfaction_score %}
+                            <div>
+                                <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">만족도</dt>
+                                <dd class="mt-1 text-sm text-gray-900 dark:text-white">
+                                    {{ result.satisfaction_score }}점
+                                    <div class="flex mt-1">
+                                        {% for i in "12345" %}
+                                        <span class="h-4 w-4 {% if result.satisfaction_score >= i|add:0 %}text-yellow-400{% else %}text-gray-300 dark:text-gray-600{% endif %}">★</span>
+                                        {% endfor %}
+                                    </div>
+                                </dd>
+                            </div>
+                            {% endif %}
+                            {% if result.follow_up_needed %}
+                            <div>
+                                <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">후속 조치</dt>
+                                <dd class="mt-1">
+                                    <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200">
+                                        필요
+                                    </span>
+                                </dd>
+                            </div>
+                            {% endif %}
+                            {% if result.additional_service_interest %}
+                            <div>
+                                <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">추가 서비스 관심</dt>
+                                <dd class="mt-1">
+                                    <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                                        있음
+                                    </span>
+                                    {% if result.estimated_additional_revenue %}
+                                    <span class="ml-2 text-sm text-gray-600 dark:text-gray-400">
+                                        (예상 {{ result.estimated_additional_revenue|intcomma }}원)
+                                    </span>
+                                    {% endif %}
+                                </dd>
+                            </div>
+                            {% endif %}
+                        </div>
+                        
+                        {% if result.feedback %}
+                        <div class="mt-4">
+                            <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">고객 피드백</dt>
+                            <dd class="mt-1 text-sm text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-700 p-3 rounded-md">
+                                {{ result.feedback|linebreaks }}
+                            </dd>
+                        </div>
+                        {% endif %}
+                        
+                        {% if result.notes %}
+                        <div class="mt-4">
+                            <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">메모</dt>
+                            <dd class="mt-1 text-sm text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-700 p-3 rounded-md">
+                                {{ result.notes|linebreaks }}
+                            </dd>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- 사이드바 -->
+            <div class="space-y-6">
+
+                <!-- 매출 기록 -->
+                {% if revenue_records %}
+                <div class="bg-white dark:bg-gray-800 shadow-sm rounded-lg">
+                    <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+                        <h3 class="text-lg font-semibold text-gray-900 dark:text-white">매출 기록</h3>
+                    </div>
+                    <div class="p-6">
+                        <div class="space-y-3">
+                            {% for revenue in revenue_records %}
+                            <div class="flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                                <div>
+                                    <div class="text-sm font-medium text-gray-900 dark:text-white">
+                                        {{ revenue.get_revenue_type_display }}
+                                    </div>
+                                    <div class="text-xs text-gray-500 dark:text-gray-400">
+                                        {{ revenue.created_at|date:"m.d H:i" }}
+                                    </div>
+                                </div>
+                                <div class="text-sm font-semibold text-gray-900 dark:text-white">
+                                    {{ revenue.expected_amount|intcomma }}원
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        <div class="mt-4">
+                            <a href="{% url 'happycall:revenue_create' happycall.pk %}" 
+                               class="text-sm text-indigo-600 dark:text-indigo-400 hover:underline">
+                                + 매출 기록 추가
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- 콜백 일정 -->
+                {% if callbacks %}
+                <div class="bg-white dark:bg-gray-800 shadow-sm rounded-lg">
+                    <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+                        <h3 class="text-lg font-semibold text-gray-900 dark:text-white">콜백 일정</h3>
+                    </div>
+                    <div class="p-6">
+                        <div class="space-y-3">
+                            {% for callback in callbacks %}
+                            <div class="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                                <div class="text-sm font-medium text-gray-900 dark:text-white">
+                                    {{ callback.scheduled_date|date:"Y.m.d H:i" }}
+                                </div>
+                                <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                    {{ callback.reason }}
+                                </div>
+                                <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full mt-2
+                                    {% if callback.status == 'scheduled' %}bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200
+                                    {% elif callback.status == 'completed' %}bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200
+                                    {% else %}bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200{% endif %}">
+                                    {{ callback.get_status_display }}
+                                </span>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

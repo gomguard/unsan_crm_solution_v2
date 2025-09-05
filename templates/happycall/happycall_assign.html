@@ -1,0 +1,462 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}일괄 생성{% endblock %}
+
+{% block extra_head %}
+<style>
+.customer-card {
+    transition: all 0.2s ease;
+}
+.customer-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+.customer-card.selected {
+    border-color: #4F46E5;
+    background-color: #F0F9FF;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 dark:bg-gray-900 py-8">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <!-- 헤더 -->
+        <div class="mb-8">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-3xl font-bold text-gray-900 dark:text-white">일괄 생성</h1>
+                    <p class="mt-2 text-gray-600 dark:text-gray-400">검사 기간별 고객을 선택하여 해피콜을 일괄 생성합니다</p>
+                </div>
+                <div class="flex space-x-3">
+                    <a href="{% url 'happycall:list' %}" 
+                       class="px-4 py-2 bg-gray-600 text-white text-sm font-medium rounded-md hover:bg-gray-700">
+                        해피콜 목록
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- 필터 섹션 -->
+        <div class="bg-white dark:bg-gray-800 shadow-sm rounded-lg mb-6">
+            <div class="p-6">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">고객 필터링</h3>
+                
+                <form method="get" id="filterForm">
+                    <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
+                        <!-- 검사 기간 필터 -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">검사 기간별 필터</label>
+                            <div class="space-y-2">
+                                <button type="button" onclick="setFilterWithDates('inspected_today', 0)" 
+                                        class="filter-btn w-full px-4 py-2 text-sm font-medium rounded-md border {% if filter_type == 'inspected_today' %}bg-blue-100 border-blue-500 text-blue-700 font-semibold{% else %}bg-white border-gray-300 text-gray-700 hover:bg-gray-50{% endif %}">
+                                    오늘 검사 받은 고객
+                                </button>
+                                <button type="button" onclick="setFilterWithDates('inspected_1week', 7)" 
+                                        class="filter-btn w-full px-4 py-2 text-sm font-medium rounded-md border {% if filter_type == 'inspected_1week' %}bg-indigo-100 border-indigo-500 text-indigo-700{% else %}bg-white border-gray-300 text-gray-700 hover:bg-gray-50{% endif %}">
+                                    검사 후 1주일 (7일 ± 2일)
+                                </button>
+                                <button type="button" onclick="setFilterWithDates('inspected_3month', 90)"
+                                        class="filter-btn w-full px-4 py-2 text-sm font-medium rounded-md border {% if filter_type == 'inspected_3month' %}bg-indigo-100 border-indigo-500 text-indigo-700{% else %}bg-white border-gray-300 text-gray-700 hover:bg-gray-50{% endif %}">
+                                    검사 후 3개월 (90일 ± 2일)
+                                </button>
+                                <button type="button" onclick="setFilterWithDates('inspected_6month', 180)"
+                                        class="filter-btn w-full px-4 py-2 text-sm font-medium rounded-md border {% if filter_type == 'inspected_6month' %}bg-indigo-100 border-indigo-500 text-indigo-700{% else %}bg-white border-gray-300 text-gray-700 hover:bg-gray-50{% endif %}">
+                                    검사 후 6개월 (180일 ± 2일)
+                                </button>
+                                <button type="button" onclick="setFilterWithDates('inspected_12month', 365)"
+                                        class="filter-btn w-full px-4 py-2 text-sm font-medium rounded-md border {% if filter_type == 'inspected_12month' %}bg-indigo-100 border-indigo-500 text-indigo-700{% else %}bg-white border-gray-300 text-gray-700 hover:bg-gray-50{% endif %}">
+                                    검사 후 12개월 (365일 ± 2일)
+                                </button>
+                                <button type="button" onclick="setFilter('no_inspection')"
+                                        class="filter-btn w-full px-4 py-2 text-sm font-medium rounded-md border {% if filter_type == 'no_inspection' %}bg-red-100 border-red-500 text-red-700{% else %}bg-white border-gray-300 text-gray-700 hover:bg-gray-50{% endif %}">
+                                    검사 기록 없음
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- 직접 기간 입력 -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">직접 기간 입력</label>
+                            <div class="space-y-3">
+                                <div>
+                                    <label class="block text-xs text-gray-500 mb-1">시작일</label>
+                                    <input type="date" name="start_date" value="{{ start_date }}" 
+                                           onchange="autoSearchWithDates()"
+                                           class="block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm">
+                                </div>
+                                <div>
+                                    <label class="block text-xs text-gray-500 mb-1">종료일</label>
+                                    <input type="date" name="end_date" value="{{ end_date }}" 
+                                           onchange="autoSearchWithDates()"
+                                           class="block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm">
+                                </div>
+                                <div class="text-xs text-gray-500 text-center py-2">
+                                    날짜 입력시 자동으로 검색됩니다
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 검색 -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">고객 검색</label>
+                            <div class="space-y-3">
+                                <input type="text" name="search" value="{{ search }}" 
+                                       placeholder="이름, 전화번호, 차량번호 검색"
+                                       class="block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                                <button type="submit" class="w-full px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-md hover:bg-indigo-700">
+                                    검색
+                                </button>
+                                <a href="{% url 'happycall:assign' %}" class="block w-full px-4 py-2 bg-gray-400 text-white text-sm font-medium rounded-md hover:bg-gray-500 text-center">
+                                    초기화
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <input type="hidden" name="filter_type" id="filter_type" value="{{ filter_type }}">
+                </form>
+            </div>
+        </div>
+
+        <!-- 대량 생성 폼 -->
+        {% if customer_data %}
+        <form method="post" id="bulkCreateForm">
+            {% csrf_token %}
+            
+            <!-- 선택 및 배정 섹션 -->
+            <div class="bg-white dark:bg-gray-800 shadow-sm rounded-lg mb-6">
+                <div class="p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
+                            일괄 선택 및 담당자 배정
+                            <span class="text-sm font-normal text-gray-500 ml-2" id="selectedCount">(0명 선택)</span>
+                        </h3>
+                        <div class="flex space-x-3">
+                            <button type="button" onclick="selectAll()" class="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700">
+                                전체 선택
+                            </button>
+                            <button type="button" onclick="deselectAll()" class="px-3 py-1 bg-gray-600 text-white text-sm rounded hover:bg-gray-700">
+                                전체 해제
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">담당자 선택</label>
+                            <select name="assignee" required class="block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                                <option value="">담당자 선택</option>
+                                {% for employee in employees %}
+                                <option value="{{ employee.id }}">{{ employee.user.username }} ({{ employee.department }})</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">해피콜 단계</label>
+                            <select name="call_stage" class="block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                                <option value="1st_pending">1차콜 예정</option>
+                                <option value="2nd_pending">2차콜 예정</option>
+                                <option value="3rd_pending">3차콜 예정</option>
+                                <option value="4th_pending">4차콜 예정</option>
+                            </select>
+                        </div>
+                        
+                        <div class="flex items-end">
+                            <button type="submit" class="w-full px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-md hover:bg-green-700" id="createBtn" disabled>
+                                선택한 고객 해피콜 생성
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 고객 카드 목록 -->
+            <div class="bg-white dark:bg-gray-800 shadow-sm rounded-lg">
+                <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+                    <div class="flex items-center justify-between">
+                        <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
+                            고객 목록 
+                            {% if paginator %}
+                            <span class="text-sm font-normal text-gray-500 dark:text-gray-400">
+                                (총 {{ paginator.count }}명 중 {{ page_obj.start_index }}-{{ page_obj.end_index }}명)
+                            </span>
+                            {% endif %}
+                        </h3>
+                        <div class="text-sm text-gray-500 dark:text-gray-400">
+                            페이지 {{ page_obj.number }} / {{ paginator.num_pages }}
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="p-6">
+                    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                        {% for data in customer_data %}
+                        <div class="customer-card bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg p-4 cursor-pointer" onclick="toggleCustomer({{ data.customer.id }})">
+                            <div class="flex items-start justify-between mb-3">
+                                <div class="flex items-center">
+                                    <input type="checkbox" name="selected_customers" value="{{ data.customer.id }}" class="customer-checkbox h-4 w-4 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500 mr-3">
+                                    <div>
+                                        <h4 class="text-sm font-semibold text-gray-900 dark:text-white">{{ data.customer.name }}</h4>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="space-y-2 text-xs">
+                                <!-- 차량 정보 -->
+                                <div class="flex justify-between">
+                                    <span class="text-gray-500 dark:text-gray-400">차량번호:</span>
+                                    <span class="text-gray-900 dark:text-white font-medium">
+                                        {% if data.vehicle_numbers %}
+                                            {% for vehicle_number in data.vehicle_numbers %}
+                                                <span class="inline-block bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-2 py-1 rounded text-xs mr-1">{{ vehicle_number }}</span>
+                                            {% endfor %}
+                                        {% else %}
+                                            <span class="text-gray-400">없음</span>
+                                        {% endif %}
+                                    </span>
+                                </div>
+                                
+                                <!-- 최근 검사일 -->
+                                <div class="flex justify-between">
+                                    <span class="text-gray-500 dark:text-gray-400">최근 검사:</span>
+                                    <span class="text-gray-900 dark:text-white">
+                                        {% if data.latest_inspection_date %}
+                                            {{ data.latest_inspection_date|date:"Y.m.d" }}
+                                        {% else %}
+                                            <span class="text-red-500">없음</span>
+                                        {% endif %}
+                                    </span>
+                                </div>
+                                
+                                <!-- 최근 서비스 -->
+                                <div class="flex justify-between">
+                                    <span class="text-gray-500 dark:text-gray-400">최근 서비스:</span>
+                                    <span class="text-gray-900 dark:text-white">
+                                        {% if data.latest_service_date %}
+                                            {{ data.latest_service_date|date:"Y.m.d" }}
+                                            {% if data.latest_service_type %}
+                                                <span class="text-xs text-gray-500">({{ data.latest_service_type }})</span>
+                                            {% endif %}
+                                        {% else %}
+                                            <span class="text-gray-400">없음</span>
+                                        {% endif %}
+                                    </span>
+                                </div>
+                                
+                                <!-- 최근 해피콜 -->
+                                <div class="flex justify-between">
+                                    <span class="text-gray-500 dark:text-gray-400">최근 해피콜:</span>
+                                    <span class="text-gray-900 dark:text-white">
+                                        {% if data.latest_happycall_date %}
+                                            {{ data.latest_happycall_date|date:"Y.m.d" }}
+                                        {% else %}
+                                            <span class="text-gray-400">없음</span>
+                                        {% endif %}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                
+                <!-- 페이지네이션 -->
+                {% if page_obj.has_other_pages %}
+                <div class="bg-white dark:bg-gray-800 px-4 py-3 border-t border-gray-200 dark:border-gray-700 sm:px-6">
+                    <div class="flex items-center justify-between">
+                        <div class="flex justify-between flex-1 sm:hidden">
+                            {% if page_obj.has_previous %}
+                            <a href="?{% if request.GET.filter_type %}filter_type={{ request.GET.filter_type }}&{% endif %}{% if request.GET.start_date %}start_date={{ request.GET.start_date }}&{% endif %}{% if request.GET.end_date %}end_date={{ request.GET.end_date }}&{% endif %}{% if request.GET.search %}search={{ request.GET.search }}&{% endif %}page={{ page_obj.previous_page_number }}" 
+                               class="relative inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-md text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700">
+                                이전
+                            </a>
+                            {% endif %}
+                            {% if page_obj.has_next %}
+                            <a href="?{% if request.GET.filter_type %}filter_type={{ request.GET.filter_type }}&{% endif %}{% if request.GET.start_date %}start_date={{ request.GET.start_date }}&{% endif %}{% if request.GET.end_date %}end_date={{ request.GET.end_date }}&{% endif %}{% if request.GET.search %}search={{ request.GET.search }}&{% endif %}page={{ page_obj.next_page_number }}" 
+                               class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-md text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700">
+                                다음
+                            </a>
+                            {% endif %}
+                        </div>
+                        <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+                            <div>
+                                <p class="text-sm text-gray-700 dark:text-gray-300">
+                                    <span class="font-medium">{{ page_obj.start_index }}</span>
+                                    -
+                                    <span class="font-medium">{{ page_obj.end_index }}</span>
+                                    /
+                                    <span class="font-medium">{{ paginator.count }}</span>
+                                    명
+                                </p>
+                            </div>
+                            <div>
+                                <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
+                                    {% if page_obj.has_previous %}
+                                    <a href="?{% if request.GET.filter_type %}filter_type={{ request.GET.filter_type }}&{% endif %}{% if request.GET.start_date %}start_date={{ request.GET.start_date }}&{% endif %}{% if request.GET.end_date %}end_date={{ request.GET.end_date }}&{% endif %}{% if request.GET.search %}search={{ request.GET.search }}&{% endif %}page={{ page_obj.previous_page_number }}" 
+                                       class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm font-medium text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700">
+                                        이전
+                                    </a>
+                                    {% endif %}
+                                    
+                                    {% for num in paginator.page_range %}
+                                    {% if page_obj.number == num %}
+                                    <span class="relative inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 bg-indigo-50 dark:bg-indigo-900 text-sm font-medium text-indigo-600 dark:text-indigo-400">
+                                        {{ num }}
+                                    </span>
+                                    {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                                    <a href="?{% if request.GET.filter_type %}filter_type={{ request.GET.filter_type }}&{% endif %}{% if request.GET.start_date %}start_date={{ request.GET.start_date }}&{% endif %}{% if request.GET.end_date %}end_date={{ request.GET.end_date }}&{% endif %}{% if request.GET.search %}search={{ request.GET.search }}&{% endif %}page={{ num }}" 
+                                       class="relative inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">
+                                        {{ num }}
+                                    </a>
+                                    {% endif %}
+                                    {% endfor %}
+                                    
+                                    {% if page_obj.has_next %}
+                                    <a href="?{% if request.GET.filter_type %}filter_type={{ request.GET.filter_type }}&{% endif %}{% if request.GET.start_date %}start_date={{ request.GET.start_date }}&{% endif %}{% if request.GET.end_date %}end_date={{ request.GET.end_date }}&{% endif %}{% if request.GET.search %}search={{ request.GET.search }}&{% endif %}page={{ page_obj.next_page_number }}" 
+                                       class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm font-medium text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700">
+                                        다음
+                                    </a>
+                                    {% endif %}
+                                </nav>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </form>
+        {% else %}
+        <!-- 빈 상태 -->
+        <div class="bg-white dark:bg-gray-800 shadow-sm rounded-lg">
+            <div class="text-center py-12">
+                <div class="text-gray-400 mb-4">
+                    <div class="w-16 h-16 mx-auto bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center">
+                        <span class="text-2xl">🔍</span>
+                    </div>
+                </div>
+                <h3 class="mt-2 text-sm font-medium text-gray-900 dark:text-white">조건에 맞는 고객이 없습니다</h3>
+                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">다른 필터 조건을 선택해보세요.</p>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+function setFilter(filterType) {
+    document.getElementById('filter_type').value = filterType;
+    document.getElementById('filterForm').submit();
+}
+
+function setFilterWithDates(filterType, days) {
+    // 오늘 날짜
+    const today = new Date();
+    
+    // 목표 날짜 (검사 후 N일)
+    const targetDate = new Date(today);
+    targetDate.setDate(today.getDate() - days);
+    
+    // ±2일 범위
+    const startDate = new Date(targetDate);
+    startDate.setDate(targetDate.getDate() - 2);
+    
+    const endDate = new Date(targetDate);
+    endDate.setDate(targetDate.getDate() + 2);
+    
+    // YYYY-MM-DD 형식으로 변환
+    const formatDate = (date) => {
+        return date.getFullYear() + '-' + 
+               String(date.getMonth() + 1).padStart(2, '0') + '-' + 
+               String(date.getDate()).padStart(2, '0');
+    };
+    
+    // 폼 필드에 날짜 설정
+    document.querySelector('input[name="start_date"]').value = formatDate(startDate);
+    document.querySelector('input[name="end_date"]').value = formatDate(endDate);
+    document.getElementById('filter_type').value = filterType;
+    
+    // 자동 제출
+    document.getElementById('filterForm').submit();
+}
+
+// 날짜 입력 시 자동으로 custom 모드로 검색
+function autoSearchWithDates() {
+    const startDate = document.querySelector('input[name="start_date"]').value;
+    const endDate = document.querySelector('input[name="end_date"]').value;
+    
+    // 시작일과 종료일이 모두 입력된 경우에만 자동 검색
+    if (startDate && endDate) {
+        document.getElementById('filter_type').value = 'custom';
+        document.getElementById('filterForm').submit();
+    }
+}
+
+function toggleCustomer(customerId) {
+    const checkbox = document.querySelector(`input[value="${customerId}"]`);
+    const card = checkbox.closest('.customer-card');
+    
+    checkbox.checked = !checkbox.checked;
+    
+    if (checkbox.checked) {
+        card.classList.add('selected');
+    } else {
+        card.classList.remove('selected');
+    }
+    
+    updateSelectedCount();
+}
+
+function selectAll() {
+    const checkboxes = document.querySelectorAll('input[name="selected_customers"]');
+    const cards = document.querySelectorAll('.customer-card');
+    
+    checkboxes.forEach((checkbox, index) => {
+        checkbox.checked = true;
+        cards[index].classList.add('selected');
+    });
+    
+    updateSelectedCount();
+}
+
+function deselectAll() {
+    const checkboxes = document.querySelectorAll('input[name="selected_customers"]');
+    const cards = document.querySelectorAll('.customer-card');
+    
+    checkboxes.forEach((checkbox, index) => {
+        checkbox.checked = false;
+        cards[index].classList.remove('selected');
+    });
+    
+    updateSelectedCount();
+}
+
+function updateSelectedCount() {
+    const selectedCheckboxes = document.querySelectorAll('input[name="selected_customers"]:checked');
+    const count = selectedCheckboxes.length;
+    
+    document.getElementById('selectedCount').textContent = `(${count}명 선택)`;
+    document.getElementById('createBtn').disabled = count === 0;
+}
+
+// 페이지 로드시 선택된 항목 상태 업데이트
+document.addEventListener('DOMContentLoaded', function() {
+    updateSelectedCount();
+    
+    // 체크박스 클릭 이벤트
+    document.querySelectorAll('input[name="selected_customers"]').forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+            const card = this.closest('.customer-card');
+            if (this.checked) {
+                card.classList.add('selected');
+            } else {
+                card.classList.remove('selected');
+            }
+            updateSelectedCount();
+        });
+    });
+});
+</script>
+{% endblock %}

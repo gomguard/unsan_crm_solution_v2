@@ -1,0 +1,380 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 dark:bg-gray-900 py-8">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <!-- 헤더 -->
+        <div class="mb-8">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-3xl font-bold text-gray-900 dark:text-white">{{ page_title }}</h1>
+                    <div class="mt-2 flex items-center space-x-4">
+                        <p class="text-gray-600 dark:text-gray-400">
+                            {% if employee %}
+                                {{ employee.department.display_name }} | {{ employee.position }}
+                            {% else %}
+                                직원 정보 없음
+                            {% endif %}
+                        </p>
+                        <span class="text-sm text-gray-500 dark:text-gray-400">
+                            {{ date_range_display }}
+                        </span>
+                    </div>
+                </div>
+                <div class="flex space-x-3">
+                    <a href="{% url 'happycall:manager_dashboard' %}" 
+                       class="px-4 py-2 bg-gray-600 text-white text-sm font-medium rounded-md hover:bg-gray-700">
+                        팀장 대시보드
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- 기간 필터 -->
+        <div class="bg-white dark:bg-gray-800 shadow-sm rounded-lg mb-6">
+            <div class="px-6 py-4">
+                <form method="get" class="flex flex-wrap items-end gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            시작일
+                        </label>
+                        <input type="date" name="date_from" value="{{ request.GET.date_from|default:default_date_from }}"
+                               class="block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            종료일
+                        </label>
+                        <input type="date" name="date_to" value="{{ request.GET.date_to|default:default_date_to }}"
+                               class="block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                    </div>
+                    <div class="flex space-x-2">
+                        <button type="submit" 
+                                class="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                            조회
+                        </button>
+                        <a href="{% url 'happycall:staff_detail' staff_user.id %}" 
+                           class="px-4 py-2 bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-white text-sm font-medium rounded-md hover:bg-gray-400 dark:hover:bg-gray-500">
+                            초기화
+                        </a>
+                    </div>
+                    <div class="flex space-x-2">
+                        <button type="submit" name="period" value="0" 
+                                class="px-3 py-2 text-xs bg-blue-200 dark:bg-blue-700 text-blue-700 dark:text-blue-300 rounded hover:bg-blue-300 dark:hover:bg-blue-600 font-medium">
+                            당일
+                        </button>
+                        <button type="submit" name="period" value="7" 
+                                class="px-3 py-2 text-xs bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded hover:bg-gray-300 dark:hover:bg-gray-600">
+                            최근 7일
+                        </button>
+                        <button type="submit" name="period" value="30" 
+                                class="px-3 py-2 text-xs bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded hover:bg-gray-300 dark:hover:bg-gray-600">
+                            최근 30일
+                        </button>
+                        <button type="submit" name="period" value="90" 
+                                class="px-3 py-2 text-xs bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded hover:bg-gray-300 dark:hover:bg-gray-600">
+                            최근 90일
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- 전체 통계 -->
+        <div class="grid grid-cols-1 md:grid-cols-6 gap-6 mb-8">
+            <div class="bg-white dark:bg-gray-800 overflow-hidden shadow rounded-lg">
+                <div class="p-5">
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0">
+                            <div class="w-8 h-8 bg-gray-500 rounded-md flex items-center justify-center">
+                                <span class="text-white text-sm font-medium">전체</span>
+                            </div>
+                        </div>
+                        <div class="ml-5 w-0 flex-1">
+                            <dl>
+                                <dt class="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">
+                                    전체 해피콜
+                                </dt>
+                                <dd class="text-lg font-medium text-gray-900 dark:text-white">
+                                    {{ total_stats.total|default:0 }}건
+                                </dd>
+                            </dl>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white dark:bg-gray-800 overflow-hidden shadow rounded-lg">
+                <div class="p-5">
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0">
+                            <div class="w-8 h-8 bg-yellow-500 rounded-md flex items-center justify-center">
+                                <span class="text-white text-xs font-medium">대기</span>
+                            </div>
+                        </div>
+                        <div class="ml-5 w-0 flex-1">
+                            <dl>
+                                <dt class="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">
+                                    대기중
+                                </dt>
+                                <dd class="text-lg font-medium text-gray-900 dark:text-white">
+                                    {{ total_stats.pending|default:0 }}건
+                                </dd>
+                            </dl>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white dark:bg-gray-800 overflow-hidden shadow rounded-lg">
+                <div class="p-5">
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0">
+                            <div class="w-8 h-8 bg-blue-500 rounded-md flex items-center justify-center">
+                                <span class="text-white text-xs font-medium">진행</span>
+                            </div>
+                        </div>
+                        <div class="ml-5 w-0 flex-1">
+                            <dl>
+                                <dt class="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">
+                                    진행중
+                                </dt>
+                                <dd class="text-lg font-medium text-gray-900 dark:text-white">
+                                    {{ total_stats.in_progress|default:0 }}건
+                                </dd>
+                            </dl>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white dark:bg-gray-800 overflow-hidden shadow rounded-lg">
+                <div class="p-5">
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0">
+                            <div class="w-8 h-8 bg-green-500 rounded-md flex items-center justify-center">
+                                <span class="text-white text-xs font-medium">완료</span>
+                            </div>
+                        </div>
+                        <div class="ml-5 w-0 flex-1">
+                            <dl>
+                                <dt class="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">
+                                    완료
+                                </dt>
+                                <dd class="text-lg font-medium text-gray-900 dark:text-white">
+                                    {{ total_stats.completed|default:0 }}건
+                                </dd>
+                            </dl>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white dark:bg-gray-800 overflow-hidden shadow rounded-lg">
+                <div class="p-5">
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0">
+                            <div class="w-8 h-8 bg-red-500 rounded-md flex items-center justify-center">
+                                <span class="text-white text-xs font-medium">실패</span>
+                            </div>
+                        </div>
+                        <div class="ml-5 w-0 flex-1">
+                            <dl>
+                                <dt class="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">
+                                    실패
+                                </dt>
+                                <dd class="text-lg font-medium text-gray-900 dark:text-white">
+                                    {{ total_stats.failed|default:0 }}건
+                                </dd>
+                            </dl>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white dark:bg-gray-800 overflow-hidden shadow rounded-lg">
+                <div class="p-5">
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0">
+                            <div class="w-8 h-8 bg-indigo-500 rounded-md flex items-center justify-center">
+                                <span class="text-white text-xs font-medium">율</span>
+                            </div>
+                        </div>
+                        <div class="ml-5 w-0 flex-1">
+                            <dl>
+                                <dt class="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">
+                                    완료율
+                                </dt>
+                                <dd class="text-lg font-medium text-gray-900 dark:text-white">
+                                    {{ total_stats.completion_rate|default:0 }}%
+                                </dd>
+                            </dl>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <!-- 콜 단계별 통계 -->
+            {% if stage_stats %}
+            <div class="bg-white dark:bg-gray-800 shadow-sm rounded-lg">
+                <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white">콜 단계별 성과</h3>
+                </div>
+                
+                <div class="p-6">
+                    <div class="space-y-4">
+                        {% for stage in stage_stats %}
+                        <div class="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                            <div class="flex justify-between items-center mb-2">
+                                <h4 class="text-sm font-medium text-gray-900 dark:text-white">{{ stage.stage }}</h4>
+                                <span class="text-sm font-bold text-indigo-600 dark:text-indigo-400">{{ stage.completion_rate }}%</span>
+                            </div>
+                            <div class="w-full bg-gray-200 rounded-full h-2 dark:bg-gray-600 mb-2">
+                                <div class="bg-indigo-600 h-2 rounded-full" style="width: {{ stage.completion_rate }}%"></div>
+                            </div>
+                            <div class="grid grid-cols-5 gap-2 text-xs">
+                                <div class="text-center">
+                                    <div class="font-medium text-gray-900 dark:text-white">{{ stage.total }}</div>
+                                    <div class="text-gray-500 dark:text-gray-400">전체</div>
+                                </div>
+                                <div class="text-center">
+                                    <div class="font-medium text-yellow-600">{{ stage.pending }}</div>
+                                    <div class="text-gray-500 dark:text-gray-400">대기</div>
+                                </div>
+                                <div class="text-center">
+                                    <div class="font-medium text-blue-600">{{ stage.in_progress }}</div>
+                                    <div class="text-gray-500 dark:text-gray-400">진행</div>
+                                </div>
+                                <div class="text-center">
+                                    <div class="font-medium text-green-600">{{ stage.completed }}</div>
+                                    <div class="text-gray-500 dark:text-gray-400">완료</div>
+                                </div>
+                                <div class="text-center">
+                                    <div class="font-medium text-red-600">{{ stage.failed }}</div>
+                                    <div class="text-gray-500 dark:text-gray-400">실패</div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- 최근 해피콜 활동 -->
+            <div class="bg-white dark:bg-gray-800 shadow-sm rounded-lg">
+                <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white">최근 해피콜 활동</h3>
+                </div>
+                
+                {% if happycalls %}
+                <div class="divide-y divide-gray-200 dark:divide-gray-700">
+                    {% for happycall in happycalls %}
+                    <div class="p-6 hover:bg-gray-50 dark:hover:bg-gray-700">
+                        <div class="flex justify-between items-start">
+                            <div class="flex-1">
+                                <div class="flex items-center space-x-2">
+                                    <h4 class="text-sm font-medium text-gray-900 dark:text-white">
+                                        <a href="{% url 'happycall:detail' happycall.pk %}" class="hover:text-indigo-600 dark:hover:text-indigo-400">
+                                            {{ happycall.service_request.customer.name }}
+                                        </a>
+                                    </h4>
+                                    <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full
+                                        {% if happycall.call_stage|slice:":3" == '1st' %}bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200
+                                        {% elif happycall.call_stage|slice:":3" == '2nd' %}bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200
+                                        {% elif happycall.call_stage|slice:":3" == '3rd' %}bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200
+                                        {% elif happycall.call_stage|slice:":3" == '4th' %}bg-pink-100 text-pink-800 dark:bg-pink-900 dark:text-pink-200
+                                        {% else %}bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200{% endif %}">
+                                        {{ happycall.get_call_stage_display }}
+                                    </span>
+                                </div>
+                                <div class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                                    {{ happycall.service_request.service_type.name|default:"서비스" }} | {{ happycall.created_at|date:"m.d H:i" }}
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full
+                                    {% if 'pending' in happycall.call_stage %}bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200
+                                    {% elif 'progress' in happycall.call_stage %}bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200
+                                    {% elif 'completed' in happycall.call_stage %}bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200
+                                    {% elif 'failed' in happycall.call_stage %}bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200
+                                    {% else %}bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200{% endif %}">
+                                    {% if 'pending' in happycall.call_stage %}대기중
+                                    {% elif 'progress' in happycall.call_stage %}진행중
+                                    {% elif 'completed' in happycall.call_stage %}완료
+                                    {% elif 'failed' in happycall.call_stage %}실패
+                                    {% else %}{{ happycall.get_status_display }}{% endif %}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <!-- 페이지네이션 -->
+                {% if page_obj.has_other_pages %}
+                <div class="px-6 py-3 bg-gray-50 dark:bg-gray-700 border-t border-gray-200 dark:border-gray-600">
+                    <nav class="flex items-center justify-between">
+                        <div class="flex-1 flex justify-between sm:hidden">
+                            {% if page_obj.has_previous %}
+                                <a href="?page={{ page_obj.previous_page_number }}{% if request.GET.date_from %}&date_from={{ request.GET.date_from }}&date_to={{ request.GET.date_to }}{% endif %}" 
+                                   class="relative inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-md text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700">
+                                    이전
+                                </a>
+                            {% endif %}
+                            {% if page_obj.has_next %}
+                                <a href="?page={{ page_obj.next_page_number }}{% if request.GET.date_from %}&date_from={{ request.GET.date_from }}&date_to={{ request.GET.date_to }}{% endif %}"
+                                   class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-md text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700">
+                                    다음
+                                </a>
+                            {% endif %}
+                        </div>
+                        <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+                            <div>
+                                <p class="text-sm text-gray-700 dark:text-gray-300">
+                                    <span class="font-medium">{{ page_obj.start_index }}</span>-<span class="font-medium">{{ page_obj.end_index }}</span>
+                                    (전체 <span class="font-medium">{{ page_obj.paginator.count }}</span>건)
+                                </p>
+                            </div>
+                            <div>
+                                <span class="relative z-0 inline-flex shadow-sm rounded-md">
+                                    {% if page_obj.has_previous %}
+                                        <a href="?page={{ page_obj.previous_page_number }}{% if request.GET.date_from %}&date_from={{ request.GET.date_from }}&date_to={{ request.GET.date_to }}{% endif %}"
+                                           class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm font-medium text-gray-500 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">
+                                            이전
+                                        </a>
+                                    {% endif %}
+                                    {% if page_obj.has_next %}
+                                        <a href="?page={{ page_obj.next_page_number }}{% if request.GET.date_from %}&date_from={{ request.GET.date_from }}&date_to={{ request.GET.date_to }}{% endif %}"
+                                           class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm font-medium text-gray-500 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">
+                                            다음
+                                        </a>
+                                    {% endif %}
+                                </span>
+                            </div>
+                        </div>
+                    </nav>
+                </div>
+                {% endif %}
+                {% else %}
+                <!-- 빈 상태 -->
+                <div class="text-center py-12">
+                    <div class="text-gray-400 mb-4">
+                        <div class="w-16 h-16 mx-auto bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center">
+                            <span class="text-2xl">📞</span>
+                        </div>
+                    </div>
+                    <h3 class="mt-2 text-sm font-medium text-gray-900 dark:text-white">해피콜 활동이 없습니다</h3>
+                    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">선택한 기간에 해피콜 활동이 없습니다.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
