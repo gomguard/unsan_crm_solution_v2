@@ -191,3 +191,69 @@ secrets.json
 *.temp
 temp/
 tmp/
+
+# Development and testing scripts
+create_*.py
+generate_*.py
+debug_*.py
+update_*.py
+sync_*.py
+reset_*.py
+
+# Development documentation
+DATA_UPLOAD_PRD.md
+docs/
+templates/*.md
+templates/logs
+
+# Utility scripts and temporary templates
+templates/tailwind_*.html
+templates/vehicles/
+
+# Development static files
+static/js/
+
+# Task management files
+tasks/
+
+# Development template tags
+customers/templatetags/
+
+# Django migration files (manage separately)
+# Uncomment if you want to ignore all migrations
+# */migrations/*.py
+# !*/migrations/__init__.py
+
+# Development middleware and handlers
+core/forms.py
+core/middleware.py
+core/upload_handlers.py
+
+# Happycall development modules
+happycall/ai_*.py
+happycall/approval_*.py
+happycall/audit_*.py
+happycall/clv_*.py
+happycall/data_*.py
+happycall/database_*.py
+happycall/error_*.py
+happycall/load_*.py
+happycall/memory_*.py
+happycall/performance_*.py
+happycall/permissions*.py
+happycall/profitability_*.py
+happycall/revenue_*.py
+happycall/session_*.py
+happycall/test_*.py
+happycall/trend_*.py
+happycall/management/
+
+# Unused happycall templates
+templates/happycall/call_history_integrated.html
+templates/happycall/customer_rejection_modal.html
+templates/happycall/dashboard.html
+templates/happycall/happycall_execute.html
+templates/happycall/happycall_list.html
+templates/happycall/my_happycalls.html
+templates/happycall/team_dashboard.html
+templates/happycall/unified_call_perform.html
