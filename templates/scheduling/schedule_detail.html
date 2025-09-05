@@ -1,0 +1,101 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ schedule.title }} - 일정 상세{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <div class="bg-white shadow rounded-lg">
+        <div class="px-4 py-5 border-b border-gray-200 sm:px-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-lg font-medium text-gray-900">{{ schedule.title }}</h1>
+                    <p class="mt-1 text-sm text-gray-500">일정 상세 정보</p>
+                </div>
+                <div class="flex space-x-3">
+                    <a href="{% url 'scheduling:calendar' %}" 
+                       class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                        ← 캘린더로 돌아가기
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="px-4 py-5 sm:px-6">
+            <dl class="grid grid-cols-1 gap-x-4 gap-y-6 sm:grid-cols-2">
+                <div>
+                    <dt class="text-sm font-medium text-gray-500">제목</dt>
+                    <dd class="mt-1 text-sm text-gray-900">{{ schedule.title }}</dd>
+                </div>
+
+                <div>
+                    <dt class="text-sm font-medium text-gray-500">상태</dt>
+                    <dd class="mt-1">
+                        <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full 
+                                   {% if schedule.status == 'completed' %}bg-green-100 text-green-800
+                                   {% elif schedule.status == 'confirmed' %}bg-blue-100 text-blue-800
+                                   {% elif schedule.status == 'cancelled' %}bg-red-100 text-red-800
+                                   {% else %}bg-yellow-100 text-yellow-800{% endif %}">
+                            {{ schedule.get_status_display }}
+                        </span>
+                    </dd>
+                </div>
+
+                <div>
+                    <dt class="text-sm font-medium text-gray-500">시작 일시</dt>
+                    <dd class="mt-1 text-sm text-gray-900">{{ schedule.start_datetime|date:"Y년 m월 d일 H:i" }}</dd>
+                </div>
+
+                <div>
+                    <dt class="text-sm font-medium text-gray-500">종료 일시</dt>
+                    <dd class="mt-1 text-sm text-gray-900">{{ schedule.end_datetime|date:"Y년 m월 d일 H:i" }}</dd>
+                </div>
+
+                <div>
+                    <dt class="text-sm font-medium text-gray-500">담당자</dt>
+                    <dd class="mt-1 text-sm text-gray-900">{{ schedule.assignee.get_full_name|default:schedule.assignee.username }}</dd>
+                </div>
+
+                <div>
+                    <dt class="text-sm font-medium text-gray-500">부서</dt>
+                    <dd class="mt-1 text-sm text-gray-900">{{ schedule.department.display_name|default:'없음' }}</dd>
+                </div>
+
+                {% if schedule.location %}
+                <div>
+                    <dt class="text-sm font-medium text-gray-500">위치</dt>
+                    <dd class="mt-1 text-sm text-gray-900">{{ schedule.location }}</dd>
+                </div>
+                {% endif %}
+
+                <div>
+                    <dt class="text-sm font-medium text-gray-500">우선순위</dt>
+                    <dd class="mt-1">
+                        <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full 
+                                   {% if schedule.priority == 'urgent' %}bg-red-100 text-red-800
+                                   {% elif schedule.priority == 'high' %}bg-orange-100 text-orange-800
+                                   {% elif schedule.priority == 'low' %}bg-gray-100 text-gray-800
+                                   {% else %}bg-blue-100 text-blue-800{% endif %}">
+                            {{ schedule.get_priority_display }}
+                        </span>
+                    </dd>
+                </div>
+
+                {% if schedule.description %}
+                <div class="sm:col-span-2">
+                    <dt class="text-sm font-medium text-gray-500">설명</dt>
+                    <dd class="mt-1 text-sm text-gray-900">{{ schedule.description|linebreaks }}</dd>
+                </div>
+                {% endif %}
+
+                <div class="sm:col-span-2">
+                    <dt class="text-sm font-medium text-gray-500">생성 정보</dt>
+                    <dd class="mt-1 text-sm text-gray-900">
+                        {{ schedule.creator.get_full_name|default:schedule.creator.username }}님이 
+                        {{ schedule.created_at|date:"Y년 m월 d일 H:i" }}에 생성
+                    </dd>
+                </div>
+            </dl>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -67,6 +67,25 @@
 .calendar-event.insurance { background-color: rgb(34 197 94); } /* green-500 */
 .calendar-event.happycall { background-color: rgb(245 158 11); } /* yellow-500 */
 .calendar-event.admin { background-color: rgb(139 92 246); } /* purple-500 */
+
+/* 강조된 이벤트 스타일 */
+.highlighted-event {
+    animation: pulse-highlight 2s infinite;
+    border: 2px solid #f59e0b !important;
+    box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.3) !important;
+    transform: scale(1.05);
+    z-index: 10;
+    position: relative;
+}
+
+@keyframes pulse-highlight {
+    0%, 100% {
+        box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.3);
+    }
+    50% {
+        box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.5);
+    }
+}
 </style>
 {% endblock %}
 
@@ -133,9 +152,9 @@
             <div id="employeeFilter-current" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
                 <!-- 전체 직원 체크박스 -->
                 {% for employee in employees %}
-                    <label class="employee-item inline-flex items-center" data-department="{{ employee.department }}">
-                        <input type="checkbox" value="{{ employee.username }}" class="employee-checkbox rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50" checked>
-                        <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">{{ employee.last_name }}{{ employee.first_name }} ({{ employee.position }})</span>
+                    <label class="employee-item inline-flex items-center" data-department="{% if employee.department %}{{ employee.department.display_name }}{% else %}admin{% endif %}">
+                        <input type="checkbox" value="{{ employee.user.username }}" class="employee-checkbox rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50" checked>
+                        <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">{{ employee.get_position_display }} {{ employee.user.last_name }}{{ employee.user.first_name|default:employee.user.username }}</span>
                     </label>
                 {% endfor %}
             </div>
@@ -526,6 +545,7 @@ document.addEventListener('DOMContentLoaded', function() {
             })
             .then(events => {
                 calendarEvents = events;
+                window.currentEvents = events; // 전역 변수에 저장
                 renderEvents();
             })
             .catch(error => {
@@ -937,6 +957,7 @@ document.addEventListener('DOMContentLoaded', function() {
     function createScheduleItem(event) {
         const div = document.createElement('div');
         div.className = 'border border-gray-200 dark:border-gray-600 rounded-lg overflow-hidden hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer transition-colors';
+        div.setAttribute('data-event-id', event.id); // 이벤트 ID 속성 추가
         
         const startDate = new Date(event.start);
         const endDate = new Date(event.end);
@@ -1607,6 +1628,96 @@ document.addEventListener('DOMContentLoaded', function() {
             dropdown.classList.remove('scale-100', 'opacity-100');
         }
     });
+    
+    // URL 파라미터에서 특정 이벤트 ID 확인 및 강조 표시
+    function checkForHighlightEvent() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const eventId = urlParams.get('event');
+        
+        if (eventId) {
+            console.log('이벤트 강조 요청:', eventId);
+            // 이벤트를 찾을 때까지 최대 5초 대기
+            let attempts = 0;
+            const maxAttempts = 50;
+            
+            const findAndHighlightEvent = () => {
+                attempts++;
+                
+                // 현재 로드된 이벤트들 중에서 해당 ID를 가진 이벤트 찾기
+                let foundEvent = null;
+                if (window.currentEvents) {
+                    foundEvent = window.currentEvents.find(event => event.id == eventId);
+                }
+                
+                if (foundEvent) {
+                    console.log('이벤트 발견:', foundEvent);
+                    
+                    // 해당 이벤트가 있는 날짜로 이동
+                    const eventDate = new Date(foundEvent.start);
+                    currentDate = new Date(eventDate.getFullYear(), eventDate.getMonth(), 1);
+                    
+                    // 캘린더 다시 렌더링
+                    renderCalendar();
+                    updateMonthTitle();
+                    
+                    // 약간의 지연 후 이벤트 모달 표시 및 강조
+                    setTimeout(() => {
+                        // 이벤트 강조 표시
+                        highlightEvent(foundEvent);
+                        
+                        // 이벤트 모달 자동 열기
+                        showEventModal(foundEvent);
+                        
+                        // URL에서 파라미터 제거
+                        const newUrl = new URL(window.location);
+                        newUrl.searchParams.delete('event');
+                        window.history.replaceState({}, document.title, newUrl);
+                    }, 500);
+                    
+                } else if (attempts < maxAttempts) {
+                    // 아직 이벤트가 로드되지 않았으면 다시 시도
+                    setTimeout(findAndHighlightEvent, 100);
+                } else {
+                    console.log('이벤트를 찾을 수 없습니다:', eventId);
+                }
+            };
+            
+            // 이벤트 검색 시작
+            findAndHighlightEvent();
+        }
+    }
+    
+    // 이벤트 강조 표시 함수
+    function highlightEvent(event) {
+        // 기존 강조 제거
+        document.querySelectorAll('.highlighted-event').forEach(el => {
+            el.classList.remove('highlighted-event');
+        });
+        
+        // DOM에서 해당 이벤트 요소들 찾기
+        const eventElements = document.querySelectorAll(`[data-event-id="${event.id}"]`);
+        eventElements.forEach(element => {
+            element.classList.add('highlighted-event');
+            
+            // 스크롤해서 해당 이벤트가 보이도록
+            element.scrollIntoView({ 
+                behavior: 'smooth', 
+                block: 'center',
+                inline: 'nearest'
+            });
+        });
+    }
+    
+    // 이벤트가 로드된 후 강조 표시 체크
+    const originalLoadEvents = loadEvents;
+    loadEvents = function() {
+        originalLoadEvents.call(this);
+        // 이벤트 로드 후 약간의 지연을 두고 강조 표시 체크
+        setTimeout(checkForHighlightEvent, 200);
+    };
+    
+    // 페이지 로드시 강조 표시 체크
+    setTimeout(checkForHighlightEvent, 1000);
 });
 </script>
 {% endblock %}

@@ -14,15 +14,36 @@ User = get_user_model()
 @login_required
 def calendar_view(request):
     """캘린더 메인 페이지"""
-    from django.contrib.auth import get_user_model
-    User = get_user_model()
+    from employees.models import Employee
     
     departments = Department.objects.all()
-    employees = User.objects.filter(user_type__in=['employee', 'admin']).select_related().order_by('department', 'position')
+    # Employee 모델을 통해 활성 직원들을 조회
+    employees = Employee.objects.filter(status='active').select_related('user', 'department').order_by('department', 'position')
+    
+    # superuser들을 별도로 조회하여 포함 (Employee 모델에 없는 관리자들)
+    superusers = User.objects.filter(is_superuser=True).exclude(
+        id__in=Employee.objects.values_list('user_id', flat=True)
+    )
+    
+    # Employee 객체와 같은 형태로 사용할 수 있도록 가상 객체 생성
+    class VirtualEmployee:
+        def __init__(self, user):
+            self.user = user
+            self.department = None
+            self.position = 'admin'
+            
+        def get_position_display(self):
+            return '관리자'
+    
+    # superuser들을 가상 직원으로 변환
+    virtual_admins = [VirtualEmployee(user) for user in superusers]
+    
+    # 실제 직원들과 관리자들을 합쳐서 전달
+    all_employees = list(employees) + virtual_admins
     
     return render(request, 'scheduling/calendar.html', {
         'departments': departments,
-        'employees': employees
+        'employees': all_employees
     })
 
 @login_required
@@ -326,6 +347,16 @@ def delete_schedule_api(request, schedule_id):
         
     except Exception as e:
         return JsonResponse({'success': False, 'message': f'서버 오류가 발생했습니다: {str(e)}'})
+
+@login_required
+def schedule_detail(request, schedule_id):
+    """스케줄 상세 페이지"""
+    schedule = get_object_or_404(Schedule, id=schedule_id)
+    
+    context = {
+        'schedule': schedule,
+    }
+    return render(request, 'scheduling/schedule_detail.html', context)
 
 def appointment_list(request):
     return render(request, 'scheduling/appointment_list.html')

@@ -3,9 +3,24 @@ from .models import Department, Schedule
 
 @admin.register(Department)
 class DepartmentAdmin(admin.ModelAdmin):
-    list_display = ['name', 'display_name', 'manager', 'created_at']
-    list_filter = ['created_at']
-    search_fields = ['name', 'display_name']
+    list_display = ['display_name', 'name', 'manager', 'is_active', 'created_at']
+    list_filter = ['is_active', 'created_at']
+    search_fields = ['name', 'display_name', 'description']
+    readonly_fields = ['created_at', 'updated_at']
+    ordering = ['display_name']
+    
+    fieldsets = (
+        ('기본 정보', {
+            'fields': ('name', 'display_name', 'description', 'is_active')
+        }),
+        ('관리자', {
+            'fields': ('manager',)
+        }),
+        ('시스템 정보', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )
     
 @admin.register(Schedule) 
 class ScheduleAdmin(admin.ModelAdmin):

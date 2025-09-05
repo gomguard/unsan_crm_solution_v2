@@ -6,21 +6,18 @@ User = get_user_model()
 
 class Department(models.Model):
     """부서 모델"""
-    DEPARTMENT_CHOICES = [
-        ('engine_oil', '엔진오일팀'),
-        ('insurance', '보험영업팀'),
-        ('happycall', '해피콜팀'),
-        ('admin', '관리부서'),
-    ]
-    
-    name = models.CharField('부서명', max_length=20, choices=DEPARTMENT_CHOICES, unique=True)
-    display_name = models.CharField('표시명', max_length=50)
+    name = models.CharField('부서 코드', max_length=50, unique=True, help_text='시스템에서 사용하는 부서 코드 (예: engine_oil, insurance)')
+    display_name = models.CharField('표시명', max_length=50, help_text='사용자에게 표시될 부서명 (예: 엔진오일팀, 보험영업팀)')
+    description = models.TextField('설명', blank=True, help_text='부서에 대한 상세 설명')
     manager = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='managed_departments', verbose_name='부서 관리자')
+    is_active = models.BooleanField('활성화', default=True, help_text='부서 활성화 여부')
     created_at = models.DateTimeField('생성일', auto_now_add=True)
+    updated_at = models.DateTimeField('수정일', auto_now=True)
     
     class Meta:
         verbose_name = '부서'
         verbose_name_plural = '부서'
+        ordering = ['display_name']
         
     def __str__(self):
         return self.display_name
