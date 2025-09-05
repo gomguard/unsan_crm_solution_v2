@@ -1,0 +1,252 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}매출전표 목록{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 dark:bg-gray-900 py-8">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <!-- 헤더 -->
+        <div class="mb-8">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-3xl font-bold text-gray-900 dark:text-white">매출전표 관리</h1>
+                    <p class="mt-2 text-gray-600 dark:text-gray-400">매출 전표 등록 및 관리</p>
+                </div>
+                <div class="flex space-x-3">
+                    <a href="{% url 'accounting:sales_create' %}" 
+                       class="px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-md hover:bg-green-700">
+                        + 매출전표 등록
+                    </a>
+                    <a href="{% url 'accounting:dashboard' %}" 
+                       class="px-4 py-2 bg-gray-600 text-white text-sm font-medium rounded-md hover:bg-gray-700">
+                        대시보드
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- 검색 및 필터 -->
+        <div class="bg-white dark:bg-gray-800 shadow-sm rounded-lg mb-6">
+            <div class="p-6">
+                <form method="get" class="grid grid-cols-1 gap-4 sm:grid-cols-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">검색</label>
+                        <input type="text" name="search" value="{{ request.GET.search }}" 
+                               placeholder="전표번호, 고객명, 적요 검색"
+                               class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">입금상태</label>
+                        <select name="payment_status" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                            <option value="">전체</option>
+                            <option value="received" {% if request.GET.payment_status == 'received' %}selected{% endif %}>입금완료</option>
+                            <option value="unreceived" {% if request.GET.payment_status == 'unreceived' %}selected{% endif %}>미입금</option>
+                        </select>
+                    </div>
+                    <div class="flex items-end">
+                        <button type="submit" class="w-full px-4 py-2 bg-gray-600 text-white text-sm font-medium rounded-md hover:bg-gray-700">
+                            조회
+                        </button>
+                    </div>
+                    <div class="flex items-end">
+                        <a href="{% url 'accounting:sales_list' %}" class="w-full px-4 py-2 bg-gray-400 text-white text-sm font-medium rounded-md hover:bg-gray-500 text-center">
+                            초기화
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- 매출전표 목록 -->
+        <div class="bg-white dark:bg-gray-800 shadow-sm rounded-lg">
+            <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
+                    매출전표 목록 
+                    {% if page_obj %}
+                    <span class="text-sm font-normal text-gray-500 dark:text-gray-400">
+                        ({{ page_obj.paginator.count }}건)
+                    </span>
+                    {% endif %}
+                </h3>
+            </div>
+            
+            {% if vouchers %}
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                    <thead class="bg-gray-50 dark:bg-gray-700">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                                전표번호
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                                고객정보
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                                매출일자
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                                금액
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                                입금상태
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                                등록자
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                                작업
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                        {% for voucher in vouchers %}
+                        <tr class="hover:bg-gray-50 dark:hover:bg-gray-700">
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="flex items-center">
+                                    <div>
+                                        <div class="text-sm font-medium text-gray-900 dark:text-white">
+                                            <a href="{% url 'accounting:sales_edit' voucher.pk %}" class="text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300">
+                                                {{ voucher.voucher_number }}
+                                            </a>
+                                        </div>
+                                        {% if voucher.description %}
+                                        <div class="text-sm text-gray-500 dark:text-gray-400 truncate max-w-32">
+                                            {{ voucher.description }}
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="text-sm text-gray-900 dark:text-white">{{ voucher.customer_name }}</div>
+                                {% if voucher.customer_phone %}
+                                <div class="text-sm text-gray-500 dark:text-gray-400">{{ voucher.customer_phone }}</div>
+                                {% endif %}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="text-sm text-gray-900 dark:text-white">{{ voucher.sales_date|date:"Y.m.d" }}</div>
+                                {% if voucher.payment_date %}
+                                <div class="text-sm text-gray-500 dark:text-gray-400">입금: {{ voucher.payment_date|date:"Y.m.d" }}</div>
+                                {% endif %}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="text-sm font-medium text-gray-900 dark:text-white">
+                                    {{ voucher.total_amount|floatformat:0|intcomma }}원
+                                </div>
+                                <div class="text-sm text-gray-500 dark:text-gray-400">
+                                    {{ voucher.get_payment_method_display }}
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full
+                                    {% if voucher.is_received %}
+                                        bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200
+                                    {% else %}
+                                        bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200
+                                    {% endif %}">
+                                    {% if voucher.is_received %}입금완료{% else %}미입금{% endif %}
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="text-sm text-gray-900 dark:text-white">{{ voucher.created_by.get_full_name }}</div>
+                                <div class="text-sm text-gray-500 dark:text-gray-400">{{ voucher.created_at|date:"m.d H:i" }}</div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                <a href="{% url 'accounting:sales_edit' voucher.pk %}" 
+                                   class="text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300">
+                                    수정
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- 페이지네이션 -->
+            {% if page_obj.has_other_pages %}
+            <div class="bg-white dark:bg-gray-800 px-4 py-3 border-t border-gray-200 dark:border-gray-700 sm:px-6">
+                <div class="flex items-center justify-between">
+                    <div class="flex justify-between flex-1 sm:hidden">
+                        {% if page_obj.has_previous %}
+                        <a href="?{% if request.GET.search %}search={{ request.GET.search }}&{% endif %}{% if request.GET.payment_status %}payment_status={{ request.GET.payment_status }}&{% endif %}page={{ page_obj.previous_page_number }}" 
+                           class="relative inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-md text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700">
+                            이전
+                        </a>
+                        {% endif %}
+                        {% if page_obj.has_next %}
+                        <a href="?{% if request.GET.search %}search={{ request.GET.search }}&{% endif %}{% if request.GET.payment_status %}payment_status={{ request.GET.payment_status }}&{% endif %}page={{ page_obj.next_page_number }}" 
+                           class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-md text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700">
+                            다음
+                        </a>
+                        {% endif %}
+                    </div>
+                    <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+                        <div>
+                            <p class="text-sm text-gray-700 dark:text-gray-300">
+                                <span class="font-medium">{{ page_obj.start_index }}</span>
+                                -
+                                <span class="font-medium">{{ page_obj.end_index }}</span>
+                                /
+                                <span class="font-medium">{{ page_obj.paginator.count }}</span>
+                                건
+                            </p>
+                        </div>
+                        <div>
+                            <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
+                                {% if page_obj.has_previous %}
+                                <a href="?{% if request.GET.search %}search={{ request.GET.search }}&{% endif %}{% if request.GET.payment_status %}payment_status={{ request.GET.payment_status }}&{% endif %}page={{ page_obj.previous_page_number }}" 
+                                   class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm font-medium text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700">
+                                    이전
+                                </a>
+                                {% endif %}
+                                
+                                {% for num in page_obj.paginator.page_range %}
+                                {% if page_obj.number == num %}
+                                <span class="relative inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 bg-indigo-50 dark:bg-indigo-900 text-sm font-medium text-indigo-600 dark:text-indigo-400">
+                                    {{ num }}
+                                </span>
+                                {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                                <a href="?{% if request.GET.search %}search={{ request.GET.search }}&{% endif %}{% if request.GET.payment_status %}payment_status={{ request.GET.payment_status }}&{% endif %}page={{ num }}" 
+                                   class="relative inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">
+                                    {{ num }}
+                                </a>
+                                {% endif %}
+                                {% endfor %}
+                                
+                                {% if page_obj.has_next %}
+                                <a href="?{% if request.GET.search %}search={{ request.GET.search }}&{% endif %}{% if request.GET.payment_status %}payment_status={{ request.GET.payment_status }}&{% endif %}page={{ page_obj.next_page_number }}" 
+                                   class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm font-medium text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700">
+                                    다음
+                                </a>
+                                {% endif %}
+                            </nav>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+            
+            {% else %}
+            <!-- 빈 상태 -->
+            <div class="text-center py-12">
+                <div class="text-gray-400 mb-4">
+                    <div class="w-16 h-16 mx-auto bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center">
+                        <span class="text-2xl">💰</span>
+                    </div>
+                </div>
+                <h3 class="mt-2 text-sm font-medium text-gray-900 dark:text-white">등록된 매출전표가 없습니다</h3>
+                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">첫 번째 매출전표를 등록해보세요.</p>
+                <div class="mt-6">
+                    <a href="{% url 'accounting:sales_create' %}" 
+                       class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700">
+                        + 매출전표 등록
+                    </a>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

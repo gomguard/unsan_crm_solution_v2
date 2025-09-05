@@ -1,0 +1,321 @@
+{% extends 'base.html' %}
+
+{% block title %}{% if object %}매출전표 수정{% else %}매출전표 등록{% endif %}{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 dark:bg-gray-900 py-8">
+    <div class="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
+        <!-- 헤더 -->
+        <div class="mb-8">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-3xl font-bold text-gray-900 dark:text-white">
+                        {% if object %}매출전표 수정{% else %}매출전표 등록{% endif %}
+                    </h1>
+                    <p class="mt-2 text-gray-600 dark:text-gray-400">
+                        {% if object %}{{ object.voucher_number }} 전표를 수정합니다{% else %}새로운 매출전표를 등록합니다{% endif %}
+                    </p>
+                </div>
+                <a href="{% url 'accounting:sales_list' %}" 
+                   class="px-4 py-2 bg-gray-600 text-white text-sm font-medium rounded-md hover:bg-gray-700">
+                    목록으로
+                </a>
+            </div>
+        </div>
+
+        <!-- 폼 -->
+        <div class="bg-white dark:bg-gray-800 shadow-sm rounded-lg">
+            <form method="post" class="divide-y divide-gray-200 dark:divide-gray-700">
+                {% csrf_token %}
+                
+                <div class="px-6 py-6">
+                    <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-6">기본 정보</h3>
+                    
+                    <div class="grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-2">
+                        <!-- 고객명 -->
+                        <div>
+                            <label for="{{ form.customer_name.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                                고객명
+                                <span class="text-red-500">*</span>
+                            </label>
+                            <div class="mt-1">
+                                <input type="text" name="{{ form.customer_name.name }}" 
+                                       value="{{ form.customer_name.value|default_if_none:'' }}" 
+                                       required class="block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                                {% if form.customer_name.errors %}
+                                <p class="mt-2 text-sm text-red-600">{{ form.customer_name.errors.0 }}</p>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- 연락처 -->
+                        <div>
+                            <label for="{{ form.customer_phone.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                                연락처
+                            </label>
+                            <div class="mt-1">
+                                <input type="text" name="{{ form.customer_phone.name }}" 
+                                       value="{{ form.customer_phone.value|default_if_none:'' }}" 
+                                       placeholder="010-1234-5678"
+                                       class="block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                                {% if form.customer_phone.errors %}
+                                <p class="mt-2 text-sm text-red-600">{{ form.customer_phone.errors.0 }}</p>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- 매출일자 -->
+                        <div>
+                            <label for="{{ form.sales_date.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                                매출일자
+                                <span class="text-red-500">*</span>
+                            </label>
+                            <div class="mt-1">
+                                <input type="date" name="{{ form.sales_date.name }}" 
+                                       value="{{ form.sales_date.value|date:'Y-m-d'|default:'' }}" 
+                                       required
+                                       class="block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                                {% if form.sales_date.errors %}
+                                <p class="mt-2 text-sm text-red-600">{{ form.sales_date.errors.0 }}</p>
+                                {% endif %}
+                            </div>
+                            <p class="mt-1 text-xs text-gray-500">형식: YYYY-MM-DD (예: 2025-09-03)</p>
+                        </div>
+
+                        <!-- 결제방법 -->
+                        <div>
+                            <label for="{{ form.payment_method.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                                결제방법
+                            </label>
+                            <div class="mt-1">
+                                <select name="{{ form.payment_method.name }}" 
+                                        class="block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                                    <option value="card" {% if form.payment_method.value == 'card' %}selected{% endif %}>카드</option>
+                                    <option value="cash" {% if form.payment_method.value == 'cash' %}selected{% endif %}>현금</option>
+                                    <option value="transfer" {% if form.payment_method.value == 'transfer' %}selected{% endif %}>계좌이체</option>
+                                    <option value="check" {% if form.payment_method.value == 'check' %}selected{% endif %}>수표</option>
+                                    <option value="credit" {% if form.payment_method.value == 'credit' %}selected{% endif %}>외상</option>
+                                </select>
+                                {% if form.payment_method.errors %}
+                                <p class="mt-2 text-sm text-red-600">{{ form.payment_method.errors.0 }}</p>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- 입금일자 -->
+                        <div>
+                            <label for="{{ form.payment_date.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                                입금일자
+                            </label>
+                            <div class="mt-1">
+                                <input type="date" name="{{ form.payment_date.name }}" 
+                                       value="{{ form.payment_date.value|date:'Y-m-d'|default:'' }}" 
+                                       class="block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                                {% if form.payment_date.errors %}
+                                <p class="mt-2 text-sm text-red-600">{{ form.payment_date.errors.0 }}</p>
+                                {% endif %}
+                            </div>
+                            <p class="mt-1 text-xs text-gray-500">입금 완료 시 입력하세요</p>
+                        </div>
+
+                        <!-- 서비스 요청 연결 -->
+                        <div>
+                            <label for="{{ form.service_request.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                                연결된 서비스
+                            </label>
+                            <div class="mt-1">
+                                <select name="{{ form.service_request.name }}" 
+                                        class="block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                                    <option value="">선택안함</option>
+                                    {% comment %} 실제로는 서비스 요청 목록이 여기에 들어감 {% endcomment %}
+                                </select>
+                                {% if form.service_request.errors %}
+                                <p class="mt-2 text-sm text-red-600">{{ form.service_request.errors.0 }}</p>
+                                {% endif %}
+                            </div>
+                            <p class="mt-1 text-xs text-gray-500">관련 서비스가 있다면 연결하세요</p>
+                        </div>
+
+                        {% if object %}
+                        <!-- 입금완료 여부 (수정시에만 표시) -->
+                        <div class="sm:col-span-2">
+                            <div class="flex items-start">
+                                <div class="flex items-center h-5">
+                                    <input type="checkbox" name="{{ form.is_received.name }}" 
+                                           {% if form.is_received.value %}checked{% endif %}
+                                           class="rounded border-gray-300 dark:border-gray-600 text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
+                                </div>
+                                <div class="ml-3 text-sm">
+                                    <label for="{{ form.is_received.id_for_label }}" class="font-medium text-gray-700 dark:text-gray-300">
+                                        입금완료
+                                    </label>
+                                    {% if form.is_received.errors %}
+                                    <p class="mt-2 text-sm text-red-600">{{ form.is_received.errors.0 }}</p>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        <!-- 적요 -->
+                        <div class="sm:col-span-2">
+                            <label for="{{ form.description.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                                적요
+                            </label>
+                            <div class="mt-1">
+                                <textarea name="{{ form.description.name }}" rows="3"
+                                          placeholder="서비스 내용이나 특이사항을 입력하세요"
+                                          class="block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500">{{ form.description.value|default_if_none:'' }}</textarea>
+                                {% if form.description.errors %}
+                                <p class="mt-2 text-sm text-red-600">{{ form.description.errors.0 }}</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 매출 항목 (JavaScript로 동적 추가) -->
+                <div class="px-6 py-6" id="sales-items-section">
+                    <div class="flex items-center justify-between mb-6">
+                        <h3 class="text-lg font-medium text-gray-900 dark:text-white">매출 항목</h3>
+                        <button type="button" id="add-item-btn" 
+                                class="px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-md hover:bg-green-700">
+                            + 항목 추가
+                        </button>
+                    </div>
+                    
+                    <div id="items-container">
+                        <!-- 항목들이 JavaScript로 동적 추가됨 -->
+                        <div class="sales-item bg-gray-50 dark:bg-gray-700 p-4 rounded-lg mb-4">
+                            <div class="grid grid-cols-1 gap-4 sm:grid-cols-6">
+                                <div class="sm:col-span-2">
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">서비스명</label>
+                                    <input type="text" name="item_name[]" required
+                                           class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">수량</label>
+                                    <input type="number" name="quantity[]" step="0.01" min="0" required
+                                           class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">단가</label>
+                                    <input type="number" name="unit_price[]" min="0" required
+                                           class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">금액</label>
+                                    <input type="number" name="amount[]" readonly
+                                           class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-300 shadow-sm bg-gray-100">
+                                </div>
+                                <div class="flex items-end">
+                                    <button type="button" class="remove-item-btn px-3 py-2 bg-red-600 text-white text-sm font-medium rounded-md hover:bg-red-700">
+                                        삭제
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-6 pt-4 border-t border-gray-200 dark:border-gray-600">
+                        <div class="flex justify-end">
+                            <div class="text-right">
+                                <p class="text-lg font-semibold text-gray-900 dark:text-white">
+                                    총 금액: <span id="total-amount">0</span>원
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 버튼 -->
+                <div class="px-6 py-4 flex justify-end space-x-3">
+                    <a href="{% url 'accounting:sales_list' %}" 
+                       class="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700">
+                        취소
+                    </a>
+                    <button type="submit" 
+                            class="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+                        {% if object %}수정{% else %}등록{% endif %}
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const itemsContainer = document.getElementById('items-container');
+    const addItemBtn = document.getElementById('add-item-btn');
+    const totalAmountElement = document.getElementById('total-amount');
+    
+    // 항목 추가
+    addItemBtn.addEventListener('click', function() {
+        const newItem = document.querySelector('.sales-item').cloneNode(true);
+        const inputs = newItem.querySelectorAll('input');
+        inputs.forEach(input => input.value = '');
+        itemsContainer.appendChild(newItem);
+        
+        // 새 항목에 이벤트 리스너 추가
+        addItemEventListeners(newItem);
+    });
+    
+    // 기존 항목들에 이벤트 리스너 추가
+    document.querySelectorAll('.sales-item').forEach(addItemEventListeners);
+    
+    function addItemEventListeners(item) {
+        // 항목 삭제
+        const removeBtn = item.querySelector('.remove-item-btn');
+        removeBtn.addEventListener('click', function() {
+            if (itemsContainer.children.length > 1) {
+                item.remove();
+                calculateTotal();
+            } else {
+                alert('최소 1개 항목은 필요합니다.');
+            }
+        });
+        
+        // 수량, 단가 변경 시 금액 계산
+        const quantityInput = item.querySelector('input[name="quantity[]"]');
+        const unitPriceInput = item.querySelector('input[name="unit_price[]"]');
+        const amountInput = item.querySelector('input[name="amount[]"]');
+        
+        function calculateItemAmount() {
+            const quantity = parseFloat(quantityInput.value) || 0;
+            const unitPrice = parseFloat(unitPriceInput.value) || 0;
+            const amount = quantity * unitPrice;
+            amountInput.value = amount;
+            calculateTotal();
+        }
+        
+        quantityInput.addEventListener('input', calculateItemAmount);
+        unitPriceInput.addEventListener('input', calculateItemAmount);
+    }
+    
+    // 총 금액 계산
+    function calculateTotal() {
+        let total = 0;
+        document.querySelectorAll('input[name="amount[]"]').forEach(function(input) {
+            total += parseFloat(input.value) || 0;
+        });
+        totalAmountElement.textContent = total.toLocaleString();
+    }
+    
+    // 폼 제출 시 총 금액을 hidden field에 설정
+    document.querySelector('form').addEventListener('submit', function(e) {
+        // 총 금액을 계산해서 hidden field 추가
+        let total = 0;
+        document.querySelectorAll('input[name="amount[]"]').forEach(function(input) {
+            total += parseFloat(input.value) || 0;
+        });
+        
+        const totalInput = document.createElement('input');
+        totalInput.type = 'hidden';
+        totalInput.name = 'total_amount';
+        totalInput.value = total;
+        this.appendChild(totalInput);
+    });
+});
+</script>
+{% endblock %}

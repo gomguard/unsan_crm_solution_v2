@@ -1,0 +1,258 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}재무상태표{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 dark:bg-gray-900 py-8">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <!-- 헤더 -->
+        <div class="mb-8">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-3xl font-bold text-gray-900 dark:text-white">재무상태표</h1>
+                    <p class="mt-2 text-gray-600 dark:text-gray-400">{{ as_of_date|date:"Y년 m월 d일" }} 기준 자산, 부채, 자본 현황</p>
+                </div>
+                <div class="flex space-x-3">
+                    <form method="get" class="flex items-center space-x-2">
+                        <input type="date" name="date" value="{{ as_of_date|date:'Y-m-d' }}" 
+                               class="rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
+                        <button type="submit" class="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-md hover:bg-indigo-700">
+                            조회
+                        </button>
+                    </form>
+                    <a href="{% url 'accounting:dashboard' %}" 
+                       class="px-4 py-2 bg-gray-600 text-white text-sm font-medium rounded-md hover:bg-gray-700">
+                        대시보드
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- 요약 카드 -->
+        <div class="grid grid-cols-1 gap-6 sm:grid-cols-3 mb-8">
+            <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm rounded-lg">
+                <div class="p-6">
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0">
+                            <div class="w-8 h-8 bg-blue-100 dark:bg-blue-900 rounded-md flex items-center justify-center">
+                                <svg class="w-5 h-5 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-2m-2 0H9m12 0V9a2 2 0 00-2-2M5 21h2m10-2v2m0-4.5v2M5 21V9a2 2 0 012-2m0 0V5a2 2 0 012-2"></path>
+                                </svg>
+                            </div>
+                        </div>
+                        <div class="ml-4 flex-1">
+                            <p class="text-sm font-medium text-gray-600 dark:text-gray-400">총 자산</p>
+                            <p class="text-2xl font-semibold text-blue-600 dark:text-blue-400">
+                                {{ total_assets|floatformat:0|intcomma }}원
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm rounded-lg">
+                <div class="p-6">
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0">
+                            <div class="w-8 h-8 bg-red-100 dark:bg-red-900 rounded-md flex items-center justify-center">
+                                <svg class="w-5 h-5 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
+                                </svg>
+                            </div>
+                        </div>
+                        <div class="ml-4 flex-1">
+                            <p class="text-sm font-medium text-gray-600 dark:text-gray-400">총 부채</p>
+                            <p class="text-2xl font-semibold text-red-600 dark:text-red-400">
+                                {{ total_liabilities|floatformat:0|intcomma }}원
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm rounded-lg">
+                <div class="p-6">
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0">
+                            <div class="w-8 h-8 bg-green-100 dark:bg-green-900 rounded-md flex items-center justify-center">
+                                <svg class="w-5 h-5 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"></path>
+                                </svg>
+                            </div>
+                        </div>
+                        <div class="ml-4 flex-1">
+                            <p class="text-sm font-medium text-gray-600 dark:text-gray-400">총 자본</p>
+                            <p class="text-2xl font-semibold text-green-600 dark:text-green-400">
+                                {{ total_equity|floatformat:0|intcomma }}원
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 재무상태표 테이블 -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <!-- 자산 -->
+            <div class="bg-white dark:bg-gray-800 shadow-sm rounded-lg">
+                <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+                    <h3 class="text-lg font-semibold text-blue-600 dark:text-blue-400">자산 (Assets)</h3>
+                </div>
+                <div class="divide-y divide-gray-200 dark:divide-gray-700">
+                    <!-- 유동자산 -->
+                    <div class="p-6">
+                        <h4 class="text-sm font-semibold text-gray-900 dark:text-white mb-4">유동자산</h4>
+                        <div class="space-y-3 ml-4">
+                            <div class="flex items-center justify-between">
+                                <span class="text-sm text-gray-600 dark:text-gray-400">현금 및 현금성자산</span>
+                                <span class="text-sm font-medium text-gray-900 dark:text-white">-원</span>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <span class="text-sm text-gray-600 dark:text-gray-400">매출채권 (미수금)</span>
+                                <span class="text-sm font-medium text-gray-900 dark:text-white">{{ accounts_receivable|floatformat:0|intcomma }}원</span>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <span class="text-sm text-gray-600 dark:text-gray-400">재고자산</span>
+                                <span class="text-sm font-medium text-gray-900 dark:text-white">-원</span>
+                            </div>
+                        </div>
+                        <div class="flex items-center justify-between mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                            <span class="text-sm font-semibold text-gray-900 dark:text-white">유동자산 계</span>
+                            <span class="text-sm font-semibold text-gray-900 dark:text-white">{{ accounts_receivable|floatformat:0|intcomma }}원</span>
+                        </div>
+                    </div>
+
+                    <!-- 비유동자산 -->
+                    <div class="p-6">
+                        <h4 class="text-sm font-semibold text-gray-900 dark:text-white mb-4">비유동자산</h4>
+                        <div class="space-y-3 ml-4">
+                            <div class="flex items-center justify-between">
+                                <span class="text-sm text-gray-600 dark:text-gray-400">유형자산</span>
+                                <span class="text-sm font-medium text-gray-900 dark:text-white">-원</span>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <span class="text-sm text-gray-600 dark:text-gray-400">무형자산</span>
+                                <span class="text-sm font-medium text-gray-900 dark:text-white">-원</span>
+                            </div>
+                        </div>
+                        <div class="flex items-center justify-between mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                            <span class="text-sm font-semibold text-gray-900 dark:text-white">비유동자산 계</span>
+                            <span class="text-sm font-semibold text-gray-900 dark:text-white">-원</span>
+                        </div>
+                    </div>
+
+                    <!-- 자산 총계 -->
+                    <div class="p-6 bg-blue-50 dark:bg-blue-900/20">
+                        <div class="flex items-center justify-between">
+                            <span class="text-lg font-bold text-blue-900 dark:text-blue-100">자산 총계</span>
+                            <span class="text-lg font-bold text-blue-900 dark:text-blue-100">{{ total_assets|floatformat:0|intcomma }}원</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 부채 및 자본 -->
+            <div class="bg-white dark:bg-gray-800 shadow-sm rounded-lg">
+                <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+                    <h3 class="text-lg font-semibold text-red-600 dark:text-red-400">부채 및 자본 (Liabilities & Equity)</h3>
+                </div>
+                <div class="divide-y divide-gray-200 dark:divide-gray-700">
+                    <!-- 유동부채 -->
+                    <div class="p-6">
+                        <h4 class="text-sm font-semibold text-gray-900 dark:text-white mb-4">유동부채</h4>
+                        <div class="space-y-3 ml-4">
+                            <div class="flex items-center justify-between">
+                                <span class="text-sm text-gray-600 dark:text-gray-400">매입채무 (미지급금)</span>
+                                <span class="text-sm font-medium text-gray-900 dark:text-white">{{ total_liabilities|floatformat:0|intcomma }}원</span>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <span class="text-sm text-gray-600 dark:text-gray-400">단기차입금</span>
+                                <span class="text-sm font-medium text-gray-900 dark:text-white">-원</span>
+                            </div>
+                        </div>
+                        <div class="flex items-center justify-between mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                            <span class="text-sm font-semibold text-gray-900 dark:text-white">유동부채 계</span>
+                            <span class="text-sm font-semibold text-gray-900 dark:text-white">{{ total_liabilities|floatformat:0|intcomma }}원</span>
+                        </div>
+                    </div>
+
+                    <!-- 비유동부채 -->
+                    <div class="p-6">
+                        <h4 class="text-sm font-semibold text-gray-900 dark:text-white mb-4">비유동부채</h4>
+                        <div class="space-y-3 ml-4">
+                            <div class="flex items-center justify-between">
+                                <span class="text-sm text-gray-600 dark:text-gray-400">장기차입금</span>
+                                <span class="text-sm font-medium text-gray-900 dark:text-white">-원</span>
+                            </div>
+                        </div>
+                        <div class="flex items-center justify-between mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                            <span class="text-sm font-semibold text-gray-900 dark:text-white">비유동부채 계</span>
+                            <span class="text-sm font-semibold text-gray-900 dark:text-white">-원</span>
+                        </div>
+                    </div>
+
+                    <!-- 부채 총계 -->
+                    <div class="p-6 bg-red-50 dark:bg-red-900/20">
+                        <div class="flex items-center justify-between">
+                            <span class="text-base font-bold text-red-900 dark:text-red-100">부채 총계</span>
+                            <span class="text-base font-bold text-red-900 dark:text-red-100">{{ total_liabilities|floatformat:0|intcomma }}원</span>
+                        </div>
+                    </div>
+
+                    <!-- 자본 -->
+                    <div class="p-6">
+                        <h4 class="text-sm font-semibold text-gray-900 dark:text-white mb-4">자본</h4>
+                        <div class="space-y-3 ml-4">
+                            <div class="flex items-center justify-between">
+                                <span class="text-sm text-gray-600 dark:text-gray-400">자본금</span>
+                                <span class="text-sm font-medium text-gray-900 dark:text-white">-원</span>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <span class="text-sm text-gray-600 dark:text-gray-400">이익잉여금</span>
+                                <span class="text-sm font-medium text-gray-900 dark:text-white">{{ total_equity|floatformat:0|intcomma }}원</span>
+                            </div>
+                        </div>
+                        <div class="flex items-center justify-between mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                            <span class="text-sm font-semibold text-gray-900 dark:text-white">자본 계</span>
+                            <span class="text-sm font-semibold text-gray-900 dark:text-white">{{ total_equity|floatformat:0|intcomma }}원</span>
+                        </div>
+                    </div>
+
+                    <!-- 부채 및 자본 총계 -->
+                    <div class="p-6 bg-green-50 dark:bg-green-900/20">
+                        <div class="flex items-center justify-between">
+                            <span class="text-lg font-bold text-green-900 dark:text-green-100">부채 및 자본 총계</span>
+                            <span class="text-lg font-bold text-green-900 dark:text-green-100">{{ total_liabilities|add:total_equity|floatformat:0|intcomma }}원</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 검증 -->
+        <div class="mt-8 bg-white dark:bg-gray-800 shadow-sm rounded-lg">
+            <div class="p-6">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">대차대조 검증</h3>
+                {% with balance_difference=total_assets|add:total_liabilities|add:total_equity %}
+                <div class="flex items-center justify-between p-4 rounded-lg {% if balance_difference == total_assets %}bg-green-50 dark:bg-green-900/20{% else %}bg-red-50 dark:bg-red-900/20{% endif %}">
+                    <span class="text-sm font-medium">자산 총계 = 부채 + 자본</span>
+                    <div class="flex items-center space-x-2">
+                        <span class="text-sm">{{ total_assets|floatformat:0|intcomma }}원 = {{ total_liabilities|add:total_equity|floatformat:0|intcomma }}원</span>
+                        {% if balance_difference == total_assets %}
+                            <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                            </svg>
+                        {% else %}
+                            <svg class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                            </svg>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endwith %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,218 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}손익계산서{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 dark:bg-gray-900 py-8">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <!-- 헤더 -->
+        <div class="mb-8">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-3xl font-bold text-gray-900 dark:text-white">손익계산서</h1>
+                    <p class="mt-2 text-gray-600 dark:text-gray-400">{{ year }}년 매출 및 비용 현황</p>
+                </div>
+                <div class="flex space-x-3">
+                    <form method="get" class="flex items-center space-x-2">
+                        <select name="year" class="rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
+                            <option value="2022" {% if year == 2022 %}selected{% endif %}>2022년</option>
+                            <option value="2023" {% if year == 2023 %}selected{% endif %}>2023년</option>
+                            <option value="2024" {% if year == 2024 %}selected{% endif %}>2024년</option>
+                            <option value="2025" {% if year == 2025 %}selected{% endif %}>2025년</option>
+                        </select>
+                        <button type="submit" class="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-md hover:bg-indigo-700">
+                            조회
+                        </button>
+                    </form>
+                    <a href="{% url 'accounting:dashboard' %}" 
+                       class="px-4 py-2 bg-gray-600 text-white text-sm font-medium rounded-md hover:bg-gray-700">
+                        대시보드
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- 요약 카드 -->
+        <div class="grid grid-cols-1 gap-6 sm:grid-cols-3 mb-8">
+            <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm rounded-lg">
+                <div class="p-6">
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0">
+                            <div class="w-8 h-8 bg-green-100 dark:bg-green-900 rounded-md flex items-center justify-center">
+                                <svg class="w-5 h-5 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"></path>
+                                </svg>
+                            </div>
+                        </div>
+                        <div class="ml-4 flex-1">
+                            <p class="text-sm font-medium text-gray-600 dark:text-gray-400">총 매출</p>
+                            <p class="text-2xl font-semibold text-green-600 dark:text-green-400">
+                                {{ total_revenue|floatformat:0|intcomma }}원
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm rounded-lg">
+                <div class="p-6">
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0">
+                            <div class="w-8 h-8 bg-red-100 dark:bg-red-900 rounded-md flex items-center justify-center">
+                                <svg class="w-5 h-5 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                                </svg>
+                            </div>
+                        </div>
+                        <div class="ml-4 flex-1">
+                            <p class="text-sm font-medium text-gray-600 dark:text-gray-400">총 비용</p>
+                            <p class="text-2xl font-semibold text-red-600 dark:text-red-400">
+                                {{ total_expenses|floatformat:0|intcomma }}원
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm rounded-lg">
+                <div class="p-6">
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0">
+                            <div class="w-8 h-8 bg-blue-100 dark:bg-blue-900 rounded-md flex items-center justify-center">
+                                <svg class="w-5 h-5 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                                </svg>
+                            </div>
+                        </div>
+                        <div class="ml-4 flex-1">
+                            <p class="text-sm font-medium text-gray-600 dark:text-gray-400">순이익</p>
+                            <p class="text-2xl font-semibold {% if net_income >= 0 %}text-blue-600 dark:text-blue-400{% else %}text-red-600 dark:text-red-400{% endif %}">
+                                {{ net_income|floatformat:0|intcomma }}원
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 월별 손익 추이 테이블 -->
+        <div class="bg-white dark:bg-gray-800 shadow-sm rounded-lg mb-8">
+            <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">월별 손익 추이</h3>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                    <thead class="bg-gray-50 dark:bg-gray-700">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                                월
+                            </th>
+                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                                매출
+                            </th>
+                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                                비용
+                            </th>
+                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                                순이익
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                        {% for month_data in monthly_data %}
+                        <tr class="hover:bg-gray-50 dark:hover:bg-gray-700">
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
+                                {{ month_data.month_name }}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-right text-green-600 dark:text-green-400">
+                                {{ month_data.revenue|floatformat:0|intcomma }}원
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-right text-red-600 dark:text-red-400">
+                                {{ month_data.expenses|floatformat:0|intcomma }}원
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-right font-medium {% if month_data.profit >= 0 %}text-blue-600 dark:text-blue-400{% else %}text-red-600 dark:text-red-400{% endif %}">
+                                {{ month_data.profit|floatformat:0|intcomma }}원
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- 상세 손익계산서 테이블 -->
+        <div class="bg-white dark:bg-gray-800 shadow-sm rounded-lg">
+            <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">손익계산서 상세</h3>
+            </div>
+            <div class="overflow-hidden">
+                <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                    <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                        <!-- 매출 섹션 -->
+                        <tr class="bg-gray-50 dark:bg-gray-700">
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900 dark:text-white" colspan="2">
+                                매출
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white pl-10">
+                                서비스 매출
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-right font-medium text-gray-900 dark:text-white">
+                                {{ total_revenue|floatformat:0|intcomma }}원
+                            </td>
+                        </tr>
+                        <tr class="border-t-2 border-gray-300 dark:border-gray-600">
+                            <td class="px-6 py-3 whitespace-nowrap text-sm font-semibold text-gray-900 dark:text-white pl-10">
+                                매출 총계
+                            </td>
+                            <td class="px-6 py-3 whitespace-nowrap text-sm text-right font-semibold text-gray-900 dark:text-white">
+                                {{ total_revenue|floatformat:0|intcomma }}원
+                            </td>
+                        </tr>
+
+                        <!-- 비용 섹션 -->
+                        <tr class="bg-gray-50 dark:bg-gray-700">
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900 dark:text-white" colspan="2">
+                                비용
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white pl-10">
+                                매입비용
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-right font-medium text-gray-900 dark:text-white">
+                                {{ total_expenses|floatformat:0|intcomma }}원
+                            </td>
+                        </tr>
+                        <tr class="border-t-2 border-gray-300 dark:border-gray-600">
+                            <td class="px-6 py-3 whitespace-nowrap text-sm font-semibold text-gray-900 dark:text-white pl-10">
+                                비용 총계
+                            </td>
+                            <td class="px-6 py-3 whitespace-nowrap text-sm text-right font-semibold text-gray-900 dark:text-white">
+                                {{ total_expenses|floatformat:0|intcomma }}원
+                            </td>
+                        </tr>
+
+                        <!-- 순이익 -->
+                        <tr class="bg-blue-50 dark:bg-blue-900/20 border-t-4 border-blue-200 dark:border-blue-700">
+                            <td class="px-6 py-4 whitespace-nowrap text-lg font-bold text-gray-900 dark:text-white">
+                                당기순이익
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-lg text-right font-bold {% if net_income >= 0 %}text-blue-600 dark:text-blue-400{% else %}text-red-600 dark:text-red-400{% endif %}">
+                                {{ net_income|floatformat:0|intcomma }}원
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// 차트 데이터를 위한 템플릿 필터 (향후 Chart.js 등 사용시)
+const monthlyData = {{ monthly_data|safe }};
+</script>
+{% endblock %}

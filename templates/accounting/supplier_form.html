@@ -1,0 +1,208 @@
+{% extends 'base.html' %}
+
+{% block title %}{% if object %}공급업체 수정{% else %}공급업체 등록{% endif %}{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 dark:bg-gray-900 py-8">
+    <div class="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
+        <!-- 헤더 -->
+        <div class="mb-8">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-3xl font-bold text-gray-900 dark:text-white">
+                        {% if object %}공급업체 수정{% else %}공급업체 등록{% endif %}
+                    </h1>
+                    <p class="mt-2 text-gray-600 dark:text-gray-400">
+                        {% if object %}{{ object.name }} 업체 정보를 수정합니다{% else %}새로운 공급업체를 등록합니다{% endif %}
+                    </p>
+                </div>
+                <a href="{% url 'accounting:supplier_list' %}" 
+                   class="px-4 py-2 bg-gray-600 text-white text-sm font-medium rounded-md hover:bg-gray-700">
+                    목록으로
+                </a>
+            </div>
+        </div>
+
+        <!-- 폼 -->
+        <div class="bg-white dark:bg-gray-800 shadow-sm rounded-lg">
+            <form method="post">
+                {% csrf_token %}
+                
+                <div class="px-6 py-6">
+                    <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-6">기본 정보</h3>
+                    
+                    <div class="grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-2">
+                        <!-- 업체명 -->
+                        <div class="sm:col-span-2">
+                            <label for="{{ form.name.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                                업체명 <span class="text-red-500">*</span>
+                            </label>
+                            <div class="mt-1">
+                                <input type="text" name="{{ form.name.name }}" value="{{ form.name.value|default_if_none:'' }}" 
+                                       required class="block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                                {% if form.name.errors %}
+                                <p class="mt-2 text-sm text-red-600">{{ form.name.errors.0 }}</p>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- 사업자번호 -->
+                        <div>
+                            <label for="{{ form.business_number.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                                사업자번호
+                            </label>
+                            <div class="mt-1">
+                                <input type="text" name="{{ form.business_number.name }}" value="{{ form.business_number.value|default_if_none:'' }}" 
+                                       placeholder="123-45-67890" class="block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                                {% if form.business_number.errors %}
+                                <p class="mt-2 text-sm text-red-600">{{ form.business_number.errors.0 }}</p>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- 대표자명 -->
+                        <div>
+                            <label for="{{ form.representative.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                                대표자명
+                            </label>
+                            <div class="mt-1">
+                                <input type="text" name="{{ form.representative.name }}" value="{{ form.representative.value|default_if_none:'' }}" 
+                                       class="block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                                {% if form.representative.errors %}
+                                <p class="mt-2 text-sm text-red-600">{{ form.representative.errors.0 }}</p>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- 전화번호 -->
+                        <div>
+                            <label for="{{ form.phone.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                                전화번호
+                            </label>
+                            <div class="mt-1">
+                                <input type="text" name="{{ form.phone.name }}" value="{{ form.phone.value|default_if_none:'' }}" 
+                                       placeholder="02-1234-5678" class="block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                                {% if form.phone.errors %}
+                                <p class="mt-2 text-sm text-red-600">{{ form.phone.errors.0 }}</p>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- 이메일 -->
+                        <div>
+                            <label for="{{ form.email.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                                이메일
+                            </label>
+                            <div class="mt-1">
+                                <input type="email" name="{{ form.email.name }}" value="{{ form.email.value|default_if_none:'' }}" 
+                                       placeholder="contact@company.com" class="block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                                {% if form.email.errors %}
+                                <p class="mt-2 text-sm text-red-600">{{ form.email.errors.0 }}</p>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- 주소 -->
+                        <div class="sm:col-span-2">
+                            <label for="{{ form.address.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                                주소
+                            </label>
+                            <div class="mt-1">
+                                <textarea name="{{ form.address.name }}" rows="3" 
+                                          class="block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500">{{ form.address.value|default_if_none:'' }}</textarea>
+                                {% if form.address.errors %}
+                                <p class="mt-2 text-sm text-red-600">{{ form.address.errors.0 }}</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 은행 정보 -->
+                <div class="px-6 py-6 border-t border-gray-200 dark:border-gray-700">
+                    <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-6">계좌 정보</h3>
+                    
+                    <div class="grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-2">
+                        <!-- 은행명 -->
+                        <div>
+                            <label for="{{ form.bank_name.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                                은행명
+                            </label>
+                            <div class="mt-1">
+                                <input type="text" name="{{ form.bank_name.name }}" value="{{ form.bank_name.value|default_if_none:'' }}" 
+                                       placeholder="국민은행" class="block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                                {% if form.bank_name.errors %}
+                                <p class="mt-2 text-sm text-red-600">{{ form.bank_name.errors.0 }}</p>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- 계좌번호 -->
+                        <div>
+                            <label for="{{ form.bank_account.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                                계좌번호
+                            </label>
+                            <div class="mt-1">
+                                <input type="text" name="{{ form.bank_account.name }}" value="{{ form.bank_account.value|default_if_none:'' }}" 
+                                       placeholder="1234-567-890123" class="block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                                {% if form.bank_account.errors %}
+                                <p class="mt-2 text-sm text-red-600">{{ form.bank_account.errors.0 }}</p>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- 비고 -->
+                        <div class="sm:col-span-2">
+                            <label for="{{ form.notes.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                                비고
+                            </label>
+                            <div class="mt-1">
+                                <textarea name="{{ form.notes.name }}" rows="3" 
+                                          placeholder="업체 관련 특이사항이나 메모를 입력하세요"
+                                          class="block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500">{{ form.notes.value|default_if_none:'' }}</textarea>
+                                {% if form.notes.errors %}
+                                <p class="mt-2 text-sm text-red-600">{{ form.notes.errors.0 }}</p>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        {% if object %}
+                        <!-- 활성상태 (수정시에만 표시) -->
+                        <div class="sm:col-span-2">
+                            <div class="flex items-start">
+                                <div class="flex items-center h-5">
+                                    <input type="checkbox" name="{{ form.is_active.name }}" 
+                                           {% if form.is_active.value %}checked{% endif %}
+                                           class="rounded border-gray-300 dark:border-gray-600 text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
+                                </div>
+                                <div class="ml-3 text-sm">
+                                    <label for="{{ form.is_active.id_for_label }}" class="font-medium text-gray-700 dark:text-gray-300">
+                                        활성 상태
+                                    </label>
+                                    <p class="text-gray-500 dark:text-gray-400">체크 해제시 목록에서 숨겨집니다</p>
+                                    {% if form.is_active.errors %}
+                                    <p class="mt-2 text-sm text-red-600">{{ form.is_active.errors.0 }}</p>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- 버튼 -->
+                <div class="px-6 py-4 flex justify-end space-x-3">
+                    <a href="{% url 'accounting:supplier_list' %}" 
+                       class="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700">
+                        취소
+                    </a>
+                    <button type="submit" 
+                            class="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                        {% if object %}수정{% else %}등록{% endif %}
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
