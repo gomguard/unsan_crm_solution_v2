@@ -118,7 +118,17 @@ class Customer(models.Model):
         verbose_name='적립포인트'
     )
     
-    # 마케팅/소통 설정
+    # 개인정보 및 마케팅/소통 설정
+    privacy_consent = models.BooleanField(
+        default=False,
+        verbose_name='개인정보 처리 동의',
+        help_text='필수: 개인정보 수집/이용 동의'
+    )
+    privacy_consent_date = models.DateTimeField(
+        blank=True,
+        null=True,
+        verbose_name='개인정보 동의일'
+    )
     marketing_consent = models.BooleanField(
         default=False,
         verbose_name='마케팅 활용 동의'
@@ -147,6 +157,29 @@ class Customer(models.Model):
         blank=True,
         null=True,
         verbose_name='연락거부 설정일'
+    )
+    is_banned = models.BooleanField(
+        default=False,
+        verbose_name='금지고객',
+        help_text='악성 고객, 서비스 거부 등 금지고객 지정'
+    )
+    banned_reason = models.CharField(
+        max_length=200,
+        blank=True,
+        verbose_name='금지 사유'
+    )
+    banned_date = models.DateTimeField(
+        blank=True,
+        null=True,
+        verbose_name='금지 설정일'
+    )
+    banned_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='banned_customers',
+        verbose_name='금지 설정자'
     )
     
     # 고객 분석 정보
@@ -208,13 +241,42 @@ class Customer(models.Model):
     def __str__(self):
         return self.get_display_name()
     
-    def get_display_name(self):
-        """표시용 이름 반환 (임시고객의 경우 전화번호 마스킹)"""
+    def get_display_name(self, show_phone=False):
+        """표시용 이름 반환"""
         if self.name:
-            return f"{self.name} ({self.phone})"
+            if show_phone:
+                return f"{self.name} ({self.phone})"
+            else:
+                return self.name
         else:
             # 임시고객의 경우 전화번호 마스킹
-            return f"{self.phone[:3]}-****-{self.phone[-4:]}"
+            return f"{self.get_masked_phone()}"
+    
+    def get_masked_phone(self):
+        """마스킹된 전화번호 반환 - 가운데 네 자리 마스킹"""
+        raw_phone = self._get_raw_phone()
+        if len(raw_phone) >= 11:
+            # 010-1234-5678 -> 010-****-5678
+            return f"{raw_phone[:4]}****{raw_phone[-4:]}"
+        elif len(raw_phone) >= 10:
+            # 0101234567 -> 010****567
+            return f"{raw_phone[:3]}****{raw_phone[-3:]}"
+        else:
+            return "***-****"
+    
+    def get_phone_for_user(self, user, show_full=False):
+        """사용자 권한에 따른 전화번호 반환"""
+        # 관리자이고 명시적으로 전체보기 요청한 경우에만 전체 번호
+        if user.is_superuser and show_full:
+            return self._get_raw_phone()
+        # 그 외 모든 경우는 마스킹
+        else:
+            return self.get_masked_phone()
+    
+    def can_view_phone(self, user, show_full=False):
+        """전화번호 보기 권한 확인"""
+        # 관리자이고 명시적으로 전체보기 요청한 경우에만 가능
+        return user.is_superuser and show_full
     
     def get_absolute_url(self):
         return reverse('customers:customer_detail', kwargs={'pk': self.pk})
@@ -239,6 +301,92 @@ class Customer(models.Model):
     def get_membership_display_korean(self):
         """멤버십 상태를 한국어로 반환"""
         return dict(self.MEMBERSHIP_STATUS_CHOICES).get(self.membership_status, '비회원')
+    
+    def can_contact(self):
+        """연락 가능 여부 확인"""
+        return not (self.do_not_contact or self.is_banned)
+    
+    def can_provide_service(self):
+        """서비스 제공 가능 여부 확인"""
+        return not self.is_banned
+    
+    def has_privacy_consent(self):
+        """개인정보 동의 여부 확인"""
+        return self.privacy_consent
+    
+    def ban_customer(self, reason, user):
+        """고객 금지 처리"""
+        from django.utils import timezone
+        self.is_banned = True
+        self.banned_reason = reason
+        self.banned_date = timezone.now()
+        self.banned_by = user
+        self.save()
+    
+    def unban_customer(self):
+        """고객 금지 해제"""
+        self.is_banned = False
+        self.banned_reason = ''
+        self.banned_date = None
+        self.banned_by = None
+        self.save()
+    
+    def to_dict(self, user=None, show_full_phone=False):
+        """안전한 딕셔너리 변환 (전화번호 보호)"""
+        from django.forms.models import model_to_dict
+        data = model_to_dict(self)
+        
+        # 전화번호 필드를 안전하게 처리
+        if user and hasattr(user, 'is_superuser'):
+            data['phone'] = self.get_phone_for_user(user, show_full_phone)
+        else:
+            data['phone'] = self.get_masked_phone()
+        
+        return data
+    
+    def __getattribute__(self, name):
+        """속성 접근 시 전화번호 보호"""
+        # phone 필드 직접 접근 시 보호
+        if name == 'phone':
+            # 스택 추적을 통해 호출자 확인
+            import inspect
+            frame = inspect.currentframe()
+            if frame and frame.f_back:
+                caller_function = frame.f_back.f_code.co_name
+                caller_class = None
+                if 'self' in frame.f_back.f_locals:
+                    caller_class = frame.f_back.f_locals['self'].__class__.__name__
+                
+                # Django 내부 또는 허용된 접근
+                allowed_functions = [
+                    'get_phone_for_user', 'get_masked_phone', '__init__', 'save', 
+                    'clean', 'full_clean', 'validate_unique', '_save_table',
+                    'get_prep_value', 'to_python', 'refresh_from_db', 
+                    '_get_pk_val', '__setstate__'
+                ]
+                allowed_classes = [
+                    'Customer', 'CharField', 'RegexValidator', 'Model'
+                ]
+                
+                if (caller_class in allowed_classes or 
+                    caller_function in allowed_functions or
+                    caller_function.startswith('_') or  # Django internal methods
+                    'django' in (frame.f_back.f_globals.get('__name__', '') or '')):
+                    return super().__getattribute__(name)
+                
+                # 외부에서의 직접 접근은 마스킹된 값 반환
+                return self.get_masked_phone()
+            
+        return super().__getattribute__(name)
+    
+    def _get_raw_phone(self):
+        """내부용 원본 전화번호 획득 메서드"""
+        return super().__getattribute__('phone')
+    
+    def save(self, *args, **kwargs):
+        """저장 시 원본 전화번호 사용"""
+        # 저장 시에는 원본 phone 값을 사용해야 함
+        return super().save(*args, **kwargs)
 
 
 class Tag(models.Model):

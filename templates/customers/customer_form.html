@@ -1,0 +1,200 @@
+{% extends 'base.html' %}
+
+{% block title %}{% if form_action == 'create' %}고객 등록{% else %}고객 수정{% endif %}{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- 헤더 -->
+    <div class="bg-white shadow rounded-lg">
+        <div class="px-4 py-5 border-b border-gray-200 sm:px-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-lg font-medium text-gray-900">{{ form_title }}</h1>
+                    <p class="mt-1 text-sm text-gray-500">고객 정보를 입력해주세요.</p>
+                </div>
+                <a href="{% url 'customers:customer_list' %}" 
+                   class="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                    </svg>
+                    목록으로
+                </a>
+            </div>
+        </div>
+
+        <!-- 폼 -->
+        <form method="post" class="p-6">
+            {% csrf_token %}
+            
+            <div class="grid grid-cols-1 gap-y-6 sm:grid-cols-2 sm:gap-x-6">
+                <!-- 고객 구분 -->
+                <div>
+                    <label for="{{ form.customer_type.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                        고객 구분 <span class="text-red-500">*</span>
+                    </label>
+                    {{ form.customer_type }}
+                    {% if form.customer_type.errors %}
+                        <div class="mt-1 text-sm text-red-600">{{ form.customer_type.errors.0 }}</div>
+                    {% endif %}
+                </div>
+
+                <!-- 이름 -->
+                <div>
+                    <label for="{{ form.name.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                        이름 <span class="text-red-500">*</span>
+                    </label>
+                    {{ form.name }}
+                    {% if form.name.errors %}
+                        <div class="mt-1 text-sm text-red-600">{{ form.name.errors.0 }}</div>
+                    {% endif %}
+                </div>
+
+                <!-- 전화번호 -->
+                <div>
+                    <label for="{{ form.phone.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                        전화번호 <span class="text-red-500">*</span>
+                    </label>
+                    {{ form.phone }}
+                    {% if form.phone.errors %}
+                        <div class="mt-1 text-sm text-red-600">{{ form.phone.errors.0 }}</div>
+                    {% endif %}
+                </div>
+
+                <!-- 이메일 -->
+                <div>
+                    <label for="{{ form.email.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                        이메일
+                    </label>
+                    {{ form.email }}
+                    {% if form.email.errors %}
+                        <div class="mt-1 text-sm text-red-600">{{ form.email.errors.0 }}</div>
+                    {% endif %}
+                </div>
+
+                <!-- 주소 (기본) -->
+                <div class="sm:col-span-2">
+                    <label for="{{ form.address_main.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                        주소 (기본) <span class="text-red-500">*</span>
+                    </label>
+                    {{ form.address_main }}
+                    {% if form.address_main.errors %}
+                        <div class="mt-1 text-sm text-red-600">{{ form.address_main.errors.0 }}</div>
+                    {% endif %}
+                </div>
+
+                <!-- 주소 (상세) -->
+                <div class="sm:col-span-2">
+                    <label for="{{ form.address_detail.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                        주소 (상세)
+                    </label>
+                    {{ form.address_detail }}
+                    {% if form.address_detail.errors %}
+                        <div class="mt-1 text-sm text-red-600">{{ form.address_detail.errors.0 }}</div>
+                    {% endif %}
+                </div>
+
+                <!-- 사업자번호 (법인 고객의 경우) -->
+                <div>
+                    <label for="{{ form.business_number.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                        사업자번호
+                    </label>
+                    {{ form.business_number }}
+                    {% if form.business_number.errors %}
+                        <div class="mt-1 text-sm text-red-600">{{ form.business_number.errors.0 }}</div>
+                    {% endif %}
+                </div>
+
+                <!-- 회사명 (법인 고객의 경우) -->
+                <div>
+                    <label for="{{ form.company_name.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                        회사명
+                    </label>
+                    {{ form.company_name }}
+                    {% if form.company_name.errors %}
+                        <div class="mt-1 text-sm text-red-600">{{ form.company_name.errors.0 }}</div>
+                    {% endif %}
+                </div>
+
+                <!-- 회원상태 -->
+                <div>
+                    <label for="{{ form.membership_status.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                        회원상태
+                    </label>
+                    {{ form.membership_status }}
+                    {% if form.membership_status.errors %}
+                        <div class="mt-1 text-sm text-red-600">{{ form.membership_status.errors.0 }}</div>
+                    {% endif %}
+                </div>
+
+                <!-- 고객등급 -->
+                <div>
+                    <label for="{{ form.customer_grade.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                        고객등급
+                    </label>
+                    {{ form.customer_grade }}
+                    {% if form.customer_grade.errors %}
+                        <div class="mt-1 text-sm text-red-600">{{ form.customer_grade.errors.0 }}</div>
+                    {% endif %}
+                </div>
+
+                <!-- 비고 -->
+                <div class="sm:col-span-2">
+                    <label for="{{ form.notes.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                        비고
+                    </label>
+                    {{ form.notes }}
+                    {% if form.notes.errors %}
+                        <div class="mt-1 text-sm text-red-600">{{ form.notes.errors.0 }}</div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- 버튼 -->
+            <div class="mt-6 flex items-center justify-end space-x-3">
+                <a href="{% url 'customers:customer_list' %}" 
+                   class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                    취소
+                </a>
+                <button type="submit" 
+                        class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                    </svg>
+                    {% if form_action == 'create' %}등록{% else %}수정{% endif %}
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // 폼 필드에 클래스 추가
+    const formFields = document.querySelectorAll('input, select, textarea');
+    formFields.forEach(field => {
+        if (field.type === 'select-one') {
+            field.className = 'block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm';
+        } else if (field.tagName === 'TEXTAREA') {
+            field.className = 'block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm resize-none';
+            field.rows = 3;
+        } else {
+            field.className = 'block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm';
+        }
+    });
+
+    // 고객 구분에 따라 사업자번호/회사명 필드 보이기/숨기기
+    const customerTypeField = document.getElementById('{{ form.customer_type.id_for_label }}');
+    const businessNumberField = document.getElementById('{{ form.business_number.id_for_label }}').closest('div');
+    const companyNameField = document.getElementById('{{ form.company_name.id_for_label }}').closest('div');
+
+    function toggleBusinessFields() {
+        const isBusiness = customerTypeField.value === 'corporate';
+        businessNumberField.style.display = isBusiness ? 'block' : 'none';
+        companyNameField.style.display = isBusiness ? 'block' : 'none';
+    }
+
+    customerTypeField.addEventListener('change', toggleBusinessFields);
+    toggleBusinessFields(); // 초기 설정
+});
+</script>
+{% endblock %}

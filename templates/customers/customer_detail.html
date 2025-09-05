@@ -1,0 +1,391 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}{{ customer.name }} - 고객 상세보기{% endblock %}
+
+{% block extra_css %}
+<style>
+    .stats-card {
+        @apply bg-white dark:bg-gray-800 overflow-hidden shadow rounded-lg;
+    }
+    .stats-card-body {
+        @apply p-5;
+    }
+    .service-history-item {
+        @apply border-l-4 pl-4 py-3;
+    }
+    .service-completed {
+        @apply border-green-400;
+    }
+    .service-progress {
+        @apply border-blue-400;
+    }
+    .service-pending {
+        @apply border-yellow-400;
+    }
+    .service-cancelled {
+        @apply border-red-400;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <!-- 헤더 섹션 -->
+    <div class="mb-8">
+        <div class="flex items-center justify-between">
+            <div>
+                <nav class="flex mb-2">
+                    <ol role="list" class="flex items-center space-x-2">
+                        <li>
+                            <a href="{% url 'customers:customer_list' %}" class="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300">
+                                고객 관리
+                            </a>
+                        </li>
+                        <li>
+                            <div class="flex items-center">
+                                <svg class="h-5 w-5 flex-shrink-0 text-gray-300 dark:text-gray-600" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z" clip-rule="evenodd" />
+                                </svg>
+                                <span class="ml-2 text-sm font-medium text-gray-500 dark:text-gray-400">{{ customer.name }}</span>
+                            </div>
+                        </li>
+                    </ol>
+                </nav>
+                <h1 class="text-3xl font-bold text-gray-900 dark:text-white">{{ customer.name }}</h1>
+                <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
+                    고객 ID: #{{ customer.id }} | 등록일: {{ customer.created_at|date:"Y년 m월 d일" }}
+                </p>
+            </div>
+            <div class="flex space-x-3">
+                <a href="{% url 'services:service_create' %}?customer_id={{ customer.id }}" 
+                   class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md text-sm font-medium">
+                    새 서비스 등록
+                </a>
+                <a href="#" class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-md text-sm font-medium">
+                    수정하기
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- 통계 카드 섹션 -->
+    <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4 mb-8">
+        <!-- 총 서비스 횟수 -->
+        <div class="stats-card">
+            <div class="stats-card-body">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <div class="w-8 h-8 bg-blue-500 rounded-md flex items-center justify-center">
+                            <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="ml-5 w-0 flex-1">
+                        <dl>
+                            <dt class="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">총 서비스</dt>
+                            <dd class="text-lg font-medium text-gray-900 dark:text-white">{{ service_count }}회</dd>
+                        </dl>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 총 결제 금액 -->
+        <div class="stats-card">
+            <div class="stats-card-body">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <div class="w-8 h-8 bg-green-500 rounded-md flex items-center justify-center">
+                            <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/>
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="ml-5 w-0 flex-1">
+                        <dl>
+                            <dt class="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">총 결제 금액</dt>
+                            <dd class="text-lg font-medium text-gray-900 dark:text-white">{{ total_payment|floatformat:0|intcomma }}원</dd>
+                        </dl>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 마지막 서비스 -->
+        <div class="stats-card">
+            <div class="stats-card-body">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <div class="w-8 h-8 bg-purple-500 rounded-md flex items-center justify-center">
+                            <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="ml-5 w-0 flex-1">
+                        <dl>
+                            <dt class="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">마지막 서비스</dt>
+                            <dd class="text-lg font-medium text-gray-900 dark:text-white">
+                                {% if last_service_date %}
+                                    {{ last_service_date|date:"m/d" }}
+                                {% else %}
+                                    없음
+                                {% endif %}
+                            </dd>
+                        </dl>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 고객 등급 -->
+        <div class="stats-card">
+            <div class="stats-card-body">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <div class="w-8 h-8 bg-yellow-500 rounded-md flex items-center justify-center">
+                            <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"/>
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="ml-5 w-0 flex-1">
+                        <dl>
+                            <dt class="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">고객 등급</dt>
+                            <dd class="text-lg font-medium text-gray-900 dark:text-white">
+                                {% if customer.customer_grade == 'vip' %}VIP
+                                {% elif customer.customer_grade == 'gold' %}골드
+                                {% elif customer.customer_grade == 'silver' %}실버
+                                {% else %}일반{% endif %}
+                            </dd>
+                        </dl>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <!-- 고객 정보 -->
+        <div class="lg:col-span-1">
+            <div class="bg-white dark:bg-gray-800 shadow rounded-lg">
+                <div class="px-4 py-5 sm:p-6">
+                    <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">고객 정보</h3>
+                    
+                    <dl class="space-y-4">
+                        <div>
+                            <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">이름</dt>
+                            <dd class="mt-1 text-sm text-gray-900 dark:text-white">{{ customer.name }}</dd>
+                        </div>
+                        
+                        <div>
+                            <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">연락처</dt>
+                            <dd class="mt-1 text-sm text-gray-900 dark:text-white">
+                                <a href="tel:{{ customer.phone }}" class="text-indigo-600 hover:text-indigo-500">
+                                    {{ customer.phone }}
+                                </a>
+                            </dd>
+                        </div>
+                        
+                        {% if customer.email %}
+                        <div>
+                            <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">이메일</dt>
+                            <dd class="mt-1 text-sm text-gray-900 dark:text-white">
+                                <a href="mailto:{{ customer.email }}" class="text-indigo-600 hover:text-indigo-500">
+                                    {{ customer.email }}
+                                </a>
+                            </dd>
+                        </div>
+                        {% endif %}
+                        
+                        <div>
+                            <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">고객 유형</dt>
+                            <dd class="mt-1 text-sm text-gray-900 dark:text-white">
+                                {% if customer.customer_type == 'individual' %}개인
+                                {% elif customer.customer_type == 'corporate' %}기업
+                                {% else %}기타{% endif %}
+                            </dd>
+                        </div>
+                        
+                        <div>
+                            <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">멤버십 상태</dt>
+                            <dd class="mt-1">
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                                    {% if customer.membership_status == 'vip' %}bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200
+                                    {% elif customer.membership_status == 'premium' %}bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200
+                                    {% elif customer.membership_status == 'basic' %}bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200
+                                    {% else %}bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200{% endif %}">
+                                    {% if customer.membership_status == 'vip' %}VIP
+                                    {% elif customer.membership_status == 'premium' %}프리미엄
+                                    {% elif customer.membership_status == 'basic' %}베이직
+                                    {% else %}없음{% endif %}
+                                </span>
+                            </dd>
+                        </div>
+                        
+                        {% if customer.get_full_address %}
+                        <div>
+                            <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">주소</dt>
+                            <dd class="mt-1 text-sm text-gray-900 dark:text-white">
+                                {{ customer.get_full_address }}
+                            </dd>
+                        </div>
+                        {% endif %}
+                    </dl>
+                </div>
+            </div>
+            
+            <!-- 보유 차량 정보 -->
+            {% if vehicles %}
+            <div class="bg-white dark:bg-gray-800 shadow rounded-lg mt-6">
+                <div class="px-4 py-5 sm:p-6">
+                    <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">보유 차량 ({{ vehicles|length }}대)</h3>
+                    
+                    <div class="space-y-3">
+                        {% for ownership in vehicles %}
+                        <div class="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors cursor-pointer">
+                            <a href="{{ ownership.vehicle.get_absolute_url }}" class="block">
+                                <div class="text-base font-semibold text-gray-900 dark:text-white mb-1">
+                                    {{ ownership.vehicle.vehicle_number }}
+                                </div>
+                                <div class="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                                    {% if ownership.vehicle.model %}{{ ownership.vehicle.model }}{% if ownership.vehicle.year %} ({{ ownership.vehicle.year }}년){% endif %}{% endif %}
+                                    {% if ownership.vehicle.model %}<br>{% endif %}
+                                    {{ ownership.start_date|date:"Y.m.d" }}부터 소유
+                                </div>
+                                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300">
+                                    소유중
+                                </span>
+                            </a>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- 서비스 이력 -->
+        <div class="lg:col-span-2">
+            <div class="bg-white dark:bg-gray-800 shadow rounded-lg">
+                <div class="px-4 py-5 sm:p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-lg font-medium text-gray-900 dark:text-white">서비스 이력</h3>
+                        <span class="text-sm text-gray-500 dark:text-gray-400">총 {{ service_count }}건</span>
+                    </div>
+                    
+                    {% if services %}
+                        <div class="space-y-4">
+                            {% for service in services %}
+                            <a href="{% url 'services:service_detail' service.pk %}" class="block">
+                                <div class="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg p-4 border-l-4 transition-colors
+                                    {% if service.status == 'completed' %}border-green-400 bg-green-50 dark:bg-green-900/20 hover:bg-green-100 dark:hover:bg-green-900/30
+                                    {% elif service.status == 'in_progress' %}border-blue-400 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30
+                                    {% elif service.status == 'pending' %}border-yellow-400 bg-yellow-50 dark:bg-yellow-900/20 hover:bg-yellow-100 dark:hover:bg-yellow-900/30
+                                    {% else %}border-red-400 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30{% endif %}">
+                                    
+                                    <!-- 날짜와 상태 -->
+                                    <div class="flex items-center justify-between mb-3">
+                                        <div class="text-sm font-medium text-gray-500 dark:text-gray-400">
+                                            {{ service.created_at|date:"Y년 m월 d일 H:i" }}
+                                        </div>
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                                            {% if service.status == 'completed' %}bg-green-100 text-green-800 dark:bg-green-800 dark:text-green-200
+                                            {% elif service.status == 'in_progress' %}bg-blue-100 text-blue-800 dark:bg-blue-800 dark:text-blue-200
+                                            {% elif service.status == 'pending' %}bg-yellow-100 text-yellow-800 dark:bg-yellow-800 dark:text-yellow-200
+                                            {% else %}bg-red-100 text-red-800 dark:bg-red-800 dark:text-red-200{% endif %}">
+                                            {% if service.status == 'completed' %}완료
+                                            {% elif service.status == 'in_progress' %}진행중
+                                            {% elif service.status == 'pending' %}대기중
+                                            {% else %}취소됨{% endif %}
+                                        </span>
+                                    </div>
+                                    
+                                    <!-- 서비스 내용 -->
+                                    <div class="mb-3">
+                                        <div class="text-base font-semibold text-gray-900 dark:text-white mb-2">
+                                            {{ service.service_detail }}
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- 차량, 금액, 담당자 정보 -->
+                                    <div class="flex items-center space-x-3 text-sm text-gray-600 dark:text-gray-400">
+                                        {% if service.vehicle %}
+                                            {% with service.vehicle.vehicle_number|slice:":3" as plate_prefix %}
+                                                <span class="inline-flex items-center px-2 py-1 text-xs font-medium rounded
+                                                    {% if plate_prefix|slice:"2:" == '가' %}bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200
+                                                    {% elif plate_prefix|slice:"2:" == '나' %}bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200
+                                                    {% elif plate_prefix|slice:"2:" == '다' %}bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200
+                                                    {% elif plate_prefix|slice:"2:" == '라' %}bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200
+                                                    {% elif plate_prefix|slice:"2:" == '마' %}bg-pink-100 text-pink-800 dark:bg-pink-900 dark:text-pink-200
+                                                    {% elif plate_prefix|slice:"2:" == '바' %}bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200
+                                                    {% elif plate_prefix|slice:"2:" == '사' %}bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200
+                                                    {% elif plate_prefix|slice:"2:" == '아' %}bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200
+                                                    {% else %}bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200{% endif %}">
+                                                    {{ service.vehicle.vehicle_number }}{% if service.vehicle.model %} / {{ service.vehicle.model }}{% endif %}
+                                                </span>
+                                            {% endwith %}
+                                        {% elif service.temp_vehicle_number %}
+                                            {% with service.temp_vehicle_number|slice:":3" as plate_prefix %}
+                                                <span class="inline-flex items-center px-2 py-1 text-xs font-medium rounded
+                                                    {% if plate_prefix|slice:"2:" == '가' %}bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200
+                                                    {% elif plate_prefix|slice:"2:" == '나' %}bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200
+                                                    {% elif plate_prefix|slice:"2:" == '다' %}bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200
+                                                    {% elif plate_prefix|slice:"2:" == '라' %}bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200
+                                                    {% elif plate_prefix|slice:"2:" == '마' %}bg-pink-100 text-pink-800 dark:bg-pink-900 dark:text-pink-200
+                                                    {% elif plate_prefix|slice:"2:" == '바' %}bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200
+                                                    {% elif plate_prefix|slice:"2:" == '사' %}bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200
+                                                    {% elif plate_prefix|slice:"2:" == '아' %}bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200
+                                                    {% else %}bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200{% endif %}">
+                                                    {{ service.temp_vehicle_number }}{% if service.temp_vehicle_model %} / {{ service.temp_vehicle_model }}{% endif %}
+                                                </span>
+                                            {% endwith %}
+                                        {% else %}
+                                            <span class="text-xs text-gray-500">차량정보 없음</span>
+                                        {% endif %}
+                                        
+                                        {% if service.estimated_price %}
+                                            <span>{{ service.estimated_price|floatformat:0|intcomma }}원</span>
+                                        {% endif %}
+                                        
+                                        {% if service.assigned_employee %}
+                                            <span>담당: {{ service.assigned_employee.get_full_name }}</span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </a>
+                            {% endfor %}
+                        </div>
+                        
+                        {% if services|length >= 10 %}
+                        <div class="mt-6 text-center">
+                            <a href="{% url 'services:service_list' %}?customer={{ customer.id }}" 
+                               class="text-indigo-600 hover:text-indigo-500 text-sm font-medium">
+                                모든 서비스 이력 보기 →
+                            </a>
+                        </div>
+                        {% endif %}
+                    {% else %}
+                        <div class="text-center py-12">
+                            <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 48 48">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                            </svg>
+                            <h3 class="mt-2 text-sm font-medium text-gray-900 dark:text-white">서비스 이력 없음</h3>
+                            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">아직 등록된 서비스가 없습니다.</p>
+                            <div class="mt-6">
+                                <a href="{% url 'services:service_create' %}?customer_id={{ customer.id }}" 
+                                   class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700">
+                                    첫 서비스 등록하기
+                                </a>
+                            </div>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
