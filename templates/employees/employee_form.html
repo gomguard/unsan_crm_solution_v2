@@ -1,0 +1,147 @@
+{% extends 'base.html' %}
+
+{% block title %}{% if is_edit %}직원 정보 수정{% else %}직원 등록{% endif %}{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <div class="bg-white shadow rounded-lg">
+        <div class="px-4 py-5 border-b border-gray-200 sm:px-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-lg font-medium text-gray-900">
+                        {% if is_edit %}직원 정보 수정{% else %}직원 등록{% endif %}
+                    </h1>
+                    <p class="mt-1 text-sm text-gray-500">
+                        {% if is_edit %}{{ employee.user.get_full_name|default:employee.user.username }}님의 정보를 수정합니다{% else %}새 직원 정보를 입력하세요{% endif %}
+                    </p>
+                </div>
+                <div>
+                    <a href="{% url 'employees:employee_list' %}" 
+                       class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                        ← 목록으로
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <form method="post" class="p-6">
+            {% csrf_token %}
+            
+            <!-- 사용자 정보 -->
+            <div class="mb-8">
+                <h3 class="text-lg font-medium text-gray-900 mb-4 border-b border-gray-200 pb-2">사용자 정보</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {% if not is_edit %}
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">사용자명 *</label>
+                        <input type="text" name="username" required 
+                               class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                               placeholder="로그인 ID">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">비밀번호 *</label>
+                        <input type="password" name="password" required 
+                               class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                               placeholder="초기 비밀번호">
+                    </div>
+                    {% endif %}
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">성</label>
+                        <input type="text" name="last_name" 
+                               value="{{ employee.user.last_name|default:'' }}"
+                               class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">이름</label>
+                        <input type="text" name="first_name" 
+                               value="{{ employee.user.first_name|default:'' }}"
+                               class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                    </div>
+                    <div class="md:col-span-2">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">이메일</label>
+                        <input type="email" name="email" 
+                               value="{{ employee.user.email|default:'' }}"
+                               class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                    </div>
+                </div>
+            </div>
+
+            <!-- 직원 정보 -->
+            <div class="mb-8">
+                <h3 class="text-lg font-medium text-gray-900 mb-4 border-b border-gray-200 pb-2">직원 정보</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">사번 *</label>
+                        <input type="text" name="employee_id" required 
+                               value="{{ employee.employee_id|default:'' }}"
+                               class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                               placeholder="EMP001">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">부서</label>
+                        <select name="department" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                            <option value="">부서 없음</option>
+                            {% for dept in departments %}
+                                <option value="{{ dept.id }}" 
+                                        {% if employee.department.id == dept.id %}selected{% endif %}>
+                                    {{ dept.display_name }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">직급</label>
+                        <select name="position" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                            <option value="staff" {% if employee.position == 'staff' %}selected{% endif %}>직원</option>
+                            <option value="manager" {% if employee.position == 'manager' %}selected{% endif %}>팀장</option>
+                            <option value="director" {% if employee.position == 'director' %}selected{% endif %}>부장</option>
+                            <option value="ceo" {% if employee.position == 'ceo' %}selected{% endif %}>대표</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">연락처</label>
+                        <input type="tel" name="phone" 
+                               value="{{ employee.phone|default:'' }}"
+                               class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                               placeholder="010-0000-0000">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">입사일</label>
+                        <input type="date" name="hire_date" 
+                               value="{{ employee.hire_date|date:'Y-m-d'|default:'' }}"
+                               class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">재직상태</label>
+                        <select name="status" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                            <option value="active" {% if employee.status == 'active' or not employee %}selected{% endif %}>재직</option>
+                            <option value="inactive" {% if employee.status == 'inactive' %}selected{% endif %}>휴직</option>
+                            <option value="retired" {% if employee.status == 'retired' %}selected{% endif %}>퇴사</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 메모 -->
+            <div class="mb-8">
+                <label class="block text-sm font-medium text-gray-700 mb-2">메모</label>
+                <textarea name="notes" rows="4" 
+                          class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                          placeholder="추가 메모 사항">{{ employee.notes|default:'' }}</textarea>
+            </div>
+
+            <!-- 버튼 -->
+            <div class="flex justify-end space-x-3 border-t border-gray-200 pt-6">
+                <a href="{% url 'employees:employee_list' %}" 
+                   class="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
+                    취소
+                </a>
+                <button type="submit" 
+                        class="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700">
+                    {% if is_edit %}수정{% else %}등록{% endif %}
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

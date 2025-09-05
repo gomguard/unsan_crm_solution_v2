@@ -1,0 +1,151 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ employee.user.get_full_name|default:employee.user.username }} - 직원 정보{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <div class="bg-white shadow rounded-lg">
+        <div class="px-4 py-5 border-b border-gray-200 sm:px-6">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center">
+                    <div class="w-12 h-12 rounded-full bg-indigo-600 text-white flex items-center justify-center text-lg font-medium">
+                        {{ employee.user.username|first|upper }}
+                    </div>
+                    <div class="ml-4">
+                        <h1 class="text-lg font-medium text-gray-900">
+                            {{ employee.user.get_full_name|default:employee.user.username }}
+                        </h1>
+                        <p class="mt-1 text-sm text-gray-500">{{ employee.employee_id }} · {{ employee.get_position_display }}</p>
+                    </div>
+                </div>
+                <div class="flex space-x-3">
+                    <a href="{% url 'employees:employee_edit' employee.id %}" 
+                       class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                        ✏️ 수정
+                    </a>
+                    <a href="{% url 'employees:employee_delete' employee.id %}" 
+                       class="inline-flex items-center px-4 py-2 border border-red-300 text-sm font-medium rounded-md text-red-700 bg-white hover:bg-red-50"
+                       onclick="return confirm('정말 삭제하시겠습니까?')">
+                        🗑️ 삭제
+                    </a>
+                    <a href="{% url 'employees:employee_list' %}" 
+                       class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700">
+                        ← 목록으로
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="px-4 py-5 sm:px-6">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <!-- 기본 정보 -->
+                <div>
+                    <h3 class="text-lg font-medium text-gray-900 mb-4 border-b border-gray-200 pb-2">기본 정보</h3>
+                    <dl class="space-y-3">
+                        <div class="flex justify-between">
+                            <dt class="text-sm font-medium text-gray-500">사용자명</dt>
+                            <dd class="text-sm text-gray-900">{{ employee.user.username }}</dd>
+                        </div>
+                        <div class="flex justify-between">
+                            <dt class="text-sm font-medium text-gray-500">이름</dt>
+                            <dd class="text-sm text-gray-900">{{ employee.user.get_full_name|default:'-' }}</dd>
+                        </div>
+                        <div class="flex justify-between">
+                            <dt class="text-sm font-medium text-gray-500">이메일</dt>
+                            <dd class="text-sm text-gray-900">{{ employee.user.email|default:'-' }}</dd>
+                        </div>
+                        <div class="flex justify-between">
+                            <dt class="text-sm font-medium text-gray-500">사번</dt>
+                            <dd class="text-sm text-gray-900">{{ employee.employee_id }}</dd>
+                        </div>
+                        <div class="flex justify-between">
+                            <dt class="text-sm font-medium text-gray-500">부서</dt>
+                            <dd class="text-sm text-gray-900">{{ employee.department.display_name|default:'-' }}</dd>
+                        </div>
+                        <div class="flex justify-between">
+                            <dt class="text-sm font-medium text-gray-500">직급</dt>
+                            <dd class="text-sm text-gray-900">{{ employee.get_position_display }}</dd>
+                        </div>
+                        <div class="flex justify-between">
+                            <dt class="text-sm font-medium text-gray-500">연락처</dt>
+                            <dd class="text-sm text-gray-900">{{ employee.phone|default:'-' }}</dd>
+                        </div>
+                        <div class="flex justify-between">
+                            <dt class="text-sm font-medium text-gray-500">입사일</dt>
+                            <dd class="text-sm text-gray-900">{{ employee.hire_date|date:'Y년 m월 d일'|default:'-' }}</dd>
+                        </div>
+                        <div class="flex justify-between">
+                            <dt class="text-sm font-medium text-gray-500">재직상태</dt>
+                            <dd class="text-sm">
+                                {% if employee.status == 'active' %}
+                                    <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">재직</span>
+                                {% elif employee.status == 'inactive' %}
+                                    <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800">휴직</span>
+                                {% elif employee.status == 'retired' %}
+                                    <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800">퇴사</span>
+                                {% endif %}
+                            </dd>
+                        </div>
+                    </dl>
+                </div>
+
+                <!-- 추가 정보 -->
+                <div>
+                    <h3 class="text-lg font-medium text-gray-900 mb-4 border-b border-gray-200 pb-2">추가 정보</h3>
+                    <dl class="space-y-3">
+                        <div>
+                            <dt class="text-sm font-medium text-gray-500 mb-1">메모</dt>
+                            <dd class="text-sm text-gray-900 p-3 bg-gray-50 rounded-md min-h-20">
+                                {{ employee.notes|default:'메모가 없습니다.'|linebreaks }}
+                            </dd>
+                        </div>
+                        <div class="flex justify-between">
+                            <dt class="text-sm font-medium text-gray-500">등록일</dt>
+                            <dd class="text-sm text-gray-900">{{ employee.created_at|date:'Y년 m월 d일 H:i' }}</dd>
+                        </div>
+                        <div class="flex justify-between">
+                            <dt class="text-sm font-medium text-gray-500">최종 수정</dt>
+                            <dd class="text-sm text-gray-900">{{ employee.updated_at|date:'Y년 m월 d일 H:i' }}</dd>
+                        </div>
+                        <div class="flex justify-between">
+                            <dt class="text-sm font-medium text-gray-500">마지막 로그인</dt>
+                            <dd class="text-sm text-gray-900">{{ employee.user.last_login|date:'Y년 m월 d일 H:i'|default:'-' }}</dd>
+                        </div>
+                        <div class="flex justify-between">
+                            <dt class="text-sm font-medium text-gray-500">계정 활성화</dt>
+                            <dd class="text-sm">
+                                {% if employee.user.is_active %}
+                                    <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">활성</span>
+                                {% else %}
+                                    <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800">비활성</span>
+                                {% endif %}
+                            </dd>
+                        </div>
+                        {% if employee.user.is_superuser %}
+                        <div class="flex justify-between">
+                            <dt class="text-sm font-medium text-gray-500">관리자 권한</dt>
+                            <dd class="text-sm">
+                                <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-purple-100 text-purple-800">슈퍼 관리자</span>
+                            </dd>
+                        </div>
+                        {% endif %}
+                    </dl>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 최근 활동 (추후 확장 가능) -->
+    <div class="bg-white shadow rounded-lg">
+        <div class="px-4 py-5 border-b border-gray-200 sm:px-6">
+            <h3 class="text-lg font-medium text-gray-900">최근 활동</h3>
+            <p class="mt-1 text-sm text-gray-500">해당 직원의 시스템 사용 현황</p>
+        </div>
+        <div class="px-4 py-5 sm:px-6">
+            <div class="text-center py-8 text-gray-500">
+                최근 활동 기록이 없습니다.
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
