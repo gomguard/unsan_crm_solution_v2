@@ -1,0 +1,369 @@
+{% extends 'base.html' %}
+
+{% block title %}해피콜팀 관리 대시보드{% endblock %}
+
+{% block extra_head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+.performance-card {
+    transition: all 0.3s ease;
+    border-left: 4px solid #e5e7eb;
+}
+.performance-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+}
+.performance-card.manager {
+    border-left-color: #f59e0b;
+}
+.performance-card.staff {
+    border-left-color: #3b82f6;
+}
+.metric-badge {
+    transition: all 0.2s ease;
+}
+.metric-badge:hover {
+    transform: scale(1.05);
+}
+.trend-indicator {
+    display: inline-flex;
+    align-items: center;
+    font-size: 0.75rem;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Header -->
+    <div class="bg-gradient-to-r from-purple-600 to-purple-700 shadow rounded-lg text-white">
+        <div class="px-6 py-8">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-3xl font-bold">해피콜팀 관리 대시보드</h1>
+                    <p class="mt-2 text-purple-100">{{ today|date:"Y년 m월 d일" }} 현재 팀 운영 현황</p>
+                    <div class="mt-4 text-sm text-purple-100">
+                        <span class="inline-block bg-purple-500 px-3 py-1 rounded-full mr-2">
+                            👥 팀원 {{ happycall_employees.count }}명
+                        </span>
+                        <span class="inline-block bg-purple-500 px-3 py-1 rounded-full mr-2">
+                            📞 전체 콜 {{ total_happycalls }}건
+                        </span>
+                        <span class="inline-block bg-purple-500 px-3 py-1 rounded-full">
+                            🆕 이번주 +{{ week_calls }}건
+                        </span>
+                    </div>
+                </div>
+                <div class="text-right">
+                    <div class="grid grid-cols-2 gap-4 text-center">
+                        <div class="bg-purple-500 rounded-lg p-3">
+                            <div class="text-2xl font-bold">{{ pending_calls }}</div>
+                            <div class="text-xs text-purple-100">진행중</div>
+                        </div>
+                        <div class="bg-green-500 rounded-lg p-3">
+                            <div class="text-2xl font-bold">{{ completed_calls }}</div>
+                            <div class="text-xs text-green-100">완료</div>
+                        </div>
+                    </div>
+                    <div class="mt-3 flex space-x-2">
+                        <a href="{% url 'happycall:assign' %}" 
+                           class="px-4 py-2 bg-white text-purple-600 text-sm font-medium rounded-md hover:bg-gray-50">
+                            📦 배정 ({{ available_for_bulk_creation }}건 대기)
+                        </a>
+                        <a href="{% url 'happycall:happycall_list' %}" 
+                           class="px-4 py-2 bg-purple-500 text-white text-sm font-medium rounded-md hover:bg-purple-400">
+                            📋 전체목록
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 단계별 현황 -->
+    <div class="bg-white shadow rounded-lg p-6">
+        <div class="flex items-center justify-between mb-6">
+            <h2 class="text-xl font-bold text-gray-900">해피콜 단계별 현황</h2>
+            <div class="text-sm text-gray-500">실시간 업데이트</div>
+        </div>
+        
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            <div class="text-center p-4 bg-blue-50 rounded-lg border border-blue-200">
+                <div class="text-2xl font-bold text-blue-600">{{ stage_stats.1st_pending.count }}</div>
+                <div class="text-sm text-gray-600">1차 대기</div>
+                <div class="text-xs text-blue-500 mt-1">만족도 조사</div>
+            </div>
+            <div class="text-center p-4 bg-green-50 rounded-lg border border-green-200">
+                <div class="text-2xl font-bold text-green-600">{{ stage_stats.1st_completed.count }}</div>
+                <div class="text-sm text-gray-600">1차 완료</div>
+                <div class="text-xs text-green-500 mt-1">추가서비스 준비</div>
+            </div>
+            <div class="text-center p-4 bg-yellow-50 rounded-lg border border-yellow-200">
+                <div class="text-2xl font-bold text-yellow-600">{{ stage_stats.2nd_pending.count }}</div>
+                <div class="text-sm text-gray-600">2차 대기</div>
+                <div class="text-xs text-yellow-600 mt-1">서비스 안내</div>
+            </div>
+            <div class="text-center p-4 bg-purple-50 rounded-lg border border-purple-200">
+                <div class="text-2xl font-bold text-purple-600">{{ stage_stats.completed.count }}</div>
+                <div class="text-sm text-gray-600">최종 완료</div>
+                <div class="text-xs text-purple-600 mt-1">프로세스 완료</div>
+            </div>
+        </div>
+        
+        <!-- 차트 -->
+        <div class="mt-6">
+            <canvas id="stageChart" height="100"></canvas>
+        </div>
+    </div>
+
+    <!-- 팀원별 성과 현황 -->
+    <div class="bg-white shadow rounded-lg p-6">
+        <div class="flex items-center justify-between mb-6">
+            <h2 class="text-xl font-bold text-gray-900">팀원별 성과 현황</h2>
+            <div class="text-sm text-gray-500">이번 주 / 이번 달 기준</div>
+        </div>
+        
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {% for performance in team_performance %}
+            <div class="performance-card {% if performance.employee.position == 'manager' %}manager{% else %}staff{% endif %} bg-white border rounded-lg p-6 hover:shadow-lg">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="flex items-center">
+                        <div class="w-12 h-12 rounded-full {% if performance.employee.position == 'manager' %}bg-yellow-500{% else %}bg-blue-500{% endif %} text-white flex items-center justify-center text-lg font-bold">
+                            {{ performance.employee.user.username|first|upper }}
+                        </div>
+                        <div class="ml-4">
+                            <div class="text-lg font-semibold text-gray-900">
+                                {{ performance.employee.user.get_full_name|default:performance.employee.user.username }}
+                            </div>
+                            <div class="text-sm text-gray-500">
+                                {{ performance.employee.get_position_display }} · {{ performance.employee.employee_id }}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <div class="text-lg font-bold text-gray-900">{{ performance.total_assigned }}</div>
+                        <div class="text-xs text-gray-500">총 담당</div>
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-2 gap-4 mb-4">
+                    <div class="text-center p-3 bg-orange-50 rounded-lg">
+                        <div class="text-xl font-bold text-orange-600">{{ performance.pending_calls }}</div>
+                        <div class="text-xs text-gray-600">진행중</div>
+                    </div>
+                    <div class="text-center p-3 bg-green-50 rounded-lg">
+                        <div class="text-xl font-bold text-green-600">{{ performance.week_completed }}</div>
+                        <div class="text-xs text-gray-600">주완료</div>
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-3 gap-3 text-center text-xs">
+                    <div class="metric-badge p-2 bg-gray-50 rounded">
+                        <div class="font-semibold text-gray-900">{{ performance.month_completed }}</div>
+                        <div class="text-gray-500">월완료</div>
+                    </div>
+                    <div class="metric-badge p-2 bg-gray-50 rounded">
+                        <div class="font-semibold text-green-600">{{ performance.success_rate }}%</div>
+                        <div class="text-gray-500">성공률</div>
+                    </div>
+                    <div class="metric-badge p-2 bg-gray-50 rounded">
+                        <div class="font-semibold text-purple-600">{{ performance.avg_satisfaction }}</div>
+                        <div class="text-gray-500">만족도</div>
+                    </div>
+                </div>
+                
+                <!-- 성과 진행바 -->
+                <div class="mt-4">
+                    <div class="flex justify-between text-xs text-gray-600 mb-1">
+                        <span>주간 목표 진도</span>
+                        <span>{{ performance.week_completed }}/10</span>
+                    </div>
+                    <div class="w-full bg-gray-200 rounded-full h-2">
+                        <div class="bg-gradient-to-r from-blue-500 to-green-500 h-2 rounded-full" 
+                             style="width: {{ performance.week_completed|mul:10|default:0 }}%"></div>
+                    </div>
+                </div>
+            </div>
+            {% empty %}
+            <div class="col-span-2 text-center py-12 text-gray-500">
+                해피콜팀 직원이 등록되지 않았습니다.
+                <div class="mt-2">
+                    <a href="{% url 'employees:employee_create' %}" class="text-purple-600 hover:text-purple-800">직원 등록하기</a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- 오늘 예정된 콜 -->
+        <div class="bg-white shadow rounded-lg p-6">
+            <div class="flex items-center justify-between mb-6">
+                <h2 class="text-lg font-semibold text-gray-900">오늘 예정된 콜</h2>
+                <span class="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded-full">{{ today_scheduled.count }}건</span>
+            </div>
+            
+            <div class="space-y-3">
+                {% for call in today_scheduled %}
+                <div class="flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:bg-gray-50">
+                    <div>
+                        <div class="text-sm font-medium text-gray-900">
+                            {{ call.service_request.customer.name }}
+                        </div>
+                        <div class="text-xs text-gray-500">
+                            {{ call.service_request.vehicle.license_plate }} · 
+                            {{ call.get_call_stage_display }}
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <a href="{% url 'happycall:update' call.id %}" 
+                           class="text-xs text-purple-600 hover:text-purple-800 font-medium">콜 수행</a>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="text-center py-6 text-gray-500 text-sm">
+                    오늘 예정된 해피콜이 없습니다.
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- 최근 완료된 콜 -->
+        <div class="bg-white shadow rounded-lg p-6">
+            <div class="flex items-center justify-between mb-6">
+                <h2 class="text-lg font-semibold text-gray-900">최근 완료된 콜</h2>
+                <a href="{% url 'happycall:happycall_list' %}?status=completed" class="text-sm text-purple-600 hover:text-purple-800">전체보기 →</a>
+            </div>
+            
+            <div class="space-y-3">
+                {% for call in recent_completed %}
+                <div class="flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:bg-gray-50">
+                    <div>
+                        <div class="text-sm font-medium text-gray-900">
+                            {{ call.service_request.customer.name }}
+                        </div>
+                        <div class="text-xs text-gray-500">
+                            {{ call.service_request.vehicle.license_plate }} · 
+                            {{ call.get_call_stage_display }}
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <div class="text-xs text-gray-500">{{ call.updated_at|date:"m/d H:i" }}</div>
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">완료</span>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="text-center py-6 text-gray-500 text-sm">
+                    최근 완료된 해피콜이 없습니다.
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- 월별 트렌드 -->
+    <div class="bg-white shadow rounded-lg p-6">
+        <div class="flex items-center justify-between mb-6">
+            <h2 class="text-lg font-semibold text-gray-900">월별 해피콜 트렌드</h2>
+            <div class="text-sm text-gray-500">최근 6개월</div>
+        </div>
+        
+        <div class="mb-4">
+            <canvas id="trendsChart" height="80"></canvas>
+        </div>
+        
+        <div class="grid grid-cols-6 gap-2 text-center text-xs">
+            {% for trend in monthly_trends %}
+            <div class="p-2 bg-gray-50 rounded">
+                <div class="font-semibold text-gray-900">{{ trend.month }}</div>
+                <div class="text-purple-600">{{ trend.total }}건</div>
+                <div class="text-green-600">{{ trend.completed }}완료</div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<script>
+// 단계별 현황 차트
+const stageCtx = document.getElementById('stageChart').getContext('2d');
+const stageChart = new Chart(stageCtx, {
+    type: 'doughnut',
+    data: {
+        labels: [
+            '1차 대기', '1차 완료', '2차 대기', '2차 완료', 
+            '3차 대기', '3차 완료', '4차 대기', '전체 완료'
+        ],
+        datasets: [{
+            data: [
+                {{ stage_stats.1st_pending.count }},
+                {{ stage_stats.1st_completed.count }},
+                {{ stage_stats.2nd_pending.count }},
+                {{ stage_stats.2nd_completed.count }},
+                {{ stage_stats.3rd_pending.count }},
+                {{ stage_stats.3rd_completed.count }},
+                {{ stage_stats.4th_pending.count }},
+                {{ stage_stats.completed.count }}
+            ],
+            backgroundColor: [
+                '#3B82F6', '#10B981', '#F59E0B', '#10B981',
+                '#8B5CF6', '#10B981', '#EF4444', '#059669'
+            ],
+            borderWidth: 2,
+            borderColor: '#fff'
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                position: 'bottom',
+                labels: {
+                    padding: 20,
+                    usePointStyle: true
+                }
+            }
+        }
+    }
+});
+
+// 월별 트렌드 차트
+const trendsCtx = document.getElementById('trendsChart').getContext('2d');
+const trendsChart = new Chart(trendsCtx, {
+    type: 'line',
+    data: {
+        labels: [{% for trend in monthly_trends %}'{{ trend.month }}'{% if not forloop.last %},{% endif %}{% endfor %}],
+        datasets: [{
+            label: '전체 해피콜',
+            data: [{% for trend in monthly_trends %}{{ trend.total }}{% if not forloop.last %},{% endif %}{% endfor %}],
+            borderColor: '#8B5CF6',
+            backgroundColor: 'rgba(139, 92, 246, 0.1)',
+            fill: true,
+            tension: 0.3
+        }, {
+            label: '완료된 콜',
+            data: [{% for trend in monthly_trends %}{{ trend.completed }}{% if not forloop.last %},{% endif %}{% endfor %}],
+            borderColor: '#10B981',
+            backgroundColor: 'rgba(16, 185, 129, 0.1)',
+            fill: true,
+            tension: 0.3
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                position: 'top'
+            }
+        },
+        scales: {
+            y: {
+                beginAtZero: true
+            }
+        }
+    }
+});
+</script>
+{% endblock %}

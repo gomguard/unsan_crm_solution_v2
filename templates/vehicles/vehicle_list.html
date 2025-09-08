@@ -1,0 +1,266 @@
+{% extends 'base.html' %}
+
+{% block title %}차량관리 - 운산자동차 CRM{% endblock %}
+{% block page_title %}차량관리{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- 헤더 섹션 -->
+    <div class="sm:flex sm:items-center sm:justify-between">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-900 dark:text-white">차량관리</h1>
+            <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
+                총 {{ total_vehicles }}대의 차량이 등록되어 있습니다.
+            </p>
+        </div>
+        <div class="mt-4 sm:mt-0">
+            <a href="#" 
+               class="inline-flex items-center gap-x-2 rounded-md bg-indigo-600 px-3.5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">
+                <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 5v14m-7-7h14" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                신규 차량 등록
+            </a>
+        </div>
+    </div>
+
+    <!-- 통계 카드 -->
+    <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <div class="bg-white dark:bg-gray-800 overflow-hidden shadow rounded-lg">
+            <div class="p-5">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <svg class="h-6 w-6 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M8 21h8a2 2 0 0 0 2-2v-2a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v2a2 2 0 0 0 2 2z"/>
+                            <path d="M7 21v-4a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v4"/>
+                            <circle cx="12" cy="7" r="4"/>
+                        </svg>
+                    </div>
+                    <div class="ml-5 w-0 flex-1">
+                        <dl>
+                            <dt class="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">총 차량수</dt>
+                            <dd class="text-lg font-medium text-gray-900 dark:text-white">{{ total_vehicles }}대</dd>
+                        </dl>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white dark:bg-gray-800 overflow-hidden shadow rounded-lg">
+            <div class="p-5">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <svg class="h-6 w-6 text-green-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="m9 12 2 2 4-4"/>
+                            <path d="M21 12c.552 0 1.005-.449.95-.998a10 10 0 1 0-8.953 8.953c.549-.055.998-.398.998-.95"/>
+                        </svg>
+                    </div>
+                    <div class="ml-5 w-0 flex-1">
+                        <dl>
+                            <dt class="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">소유자 있음</dt>
+                            <dd class="text-lg font-medium text-gray-900 dark:text-white">{{ vehicles_with_owners }}대</dd>
+                        </dl>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white dark:bg-gray-800 overflow-hidden shadow rounded-lg">
+            <div class="p-5">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <svg class="h-6 w-6 text-red-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"/>
+                            <path d="m15 9-6 6"/>
+                            <path d="m9 9 6 6"/>
+                        </svg>
+                    </div>
+                    <div class="ml-5 w-0 flex-1">
+                        <dl>
+                            <dt class="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">소유자 없음</dt>
+                            <dd class="text-lg font-medium text-gray-900 dark:text-white">{{ vehicles_without_owners }}대</dd>
+                        </dl>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 필터 및 검색 -->
+    <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
+        <form method="GET" class="space-y-4">
+            <div class="grid grid-cols-1 gap-4 sm:grid-cols-4">
+                <!-- 검색 -->
+                <div class="sm:col-span-2">
+                    <label for="search" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">검색</label>
+                    <input type="text" 
+                           id="search" 
+                           name="search" 
+                           value="{{ search_query }}" 
+                           placeholder="차량번호, 모델명, 소유자명 검색"
+                           class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white sm:text-sm">
+                </div>
+
+                <!-- 소유자 필터 -->
+                <div>
+                    <label for="owner" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">소유자</label>
+                    <select id="owner" 
+                            name="owner" 
+                            class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white sm:text-sm">
+                        <option value="">전체</option>
+                        <option value="with_owner" {% if owner_filter == 'with_owner' %}selected{% endif %}>소유자 있음</option>
+                        <option value="without_owner" {% if owner_filter == 'without_owner' %}selected{% endif %}>소유자 없음</option>
+                    </select>
+                </div>
+
+                <!-- 검색 버튼 -->
+                <div class="flex items-end">
+                    <button type="submit" 
+                            class="w-full inline-flex items-center justify-center gap-x-2 rounded-md bg-gray-600 px-3.5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-gray-500">
+                        <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="11" cy="11" r="8"/>
+                            <path d="M21 21l-4.35-4.35"/>
+                        </svg>
+                        검색
+                    </button>
+                </div>
+            </div>
+
+            <div class="flex items-center justify-between">
+                <a href="{% url 'vehicles:vehicle_list' %}" 
+                   class="inline-flex items-center gap-x-2 rounded-md border border-gray-300 bg-white px-3.5 py-2.5 text-sm font-semibold text-gray-900 shadow-sm hover:bg-gray-50 dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:hover:bg-gray-600">
+                    초기화
+                </a>
+            </div>
+        </form>
+    </div>
+
+    <!-- 차량 목록 -->
+    <div class="bg-white dark:bg-gray-800 shadow overflow-hidden sm:rounded-md">
+        <ul role="list" class="divide-y divide-gray-200 dark:divide-gray-700">
+            {% for vehicle in vehicles %}
+            <li class="px-6 py-4 hover:bg-gray-50 dark:hover:bg-gray-700">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0">
+                            <div class="h-10 w-10 rounded-full bg-indigo-100 dark:bg-indigo-900 flex items-center justify-center">
+                                <svg class="h-6 w-6 text-indigo-600 dark:text-indigo-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M8 21h8a2 2 0 0 0 2-2v-2a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v2a2 2 0 0 0 2 2z"/>
+                                    <path d="M7 21v-4a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v4"/>
+                                    <circle cx="12" cy="7" r="4"/>
+                                </svg>
+                            </div>
+                        </div>
+                        <div class="ml-4">
+                            <div class="flex items-center space-x-3">
+                                <div class="text-sm font-medium text-gray-900 dark:text-white">
+                                    <a href="{% url 'vehicles:vehicle_detail' vehicle.pk %}" class="hover:text-indigo-600 dark:hover:text-indigo-400">
+                                        {{ vehicle.vehicle_number }}
+                                    </a>
+                                </div>
+                                
+                                <!-- 차량 정보 배지 -->
+                                <span class="inline-flex items-center rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-medium text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+                                    {{ vehicle.model }}
+                                </span>
+                                
+                                {% if vehicle.year %}
+                                <span class="inline-flex items-center rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-800 dark:bg-gray-900 dark:text-gray-200">
+                                    {{ vehicle.year }}년
+                                </span>
+                                {% endif %}
+                            </div>
+                            <div class="text-sm text-gray-500 dark:text-gray-400 space-y-1">
+                                {% with current_ownership=vehicle.ownerships.first %}
+                                {% if current_ownership and not current_ownership.end_date %}
+                                <div>소유자: {{ current_ownership.customer.name }}</div>
+                                <div>연락처: {{ current_ownership.customer.get_masked_phone }}</div>
+                                {% else %}
+                                <div class="text-red-500">소유자 없음</div>
+                                {% endif %}
+                                {% endwith %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-center space-x-2">
+                        <div class="text-right text-sm text-gray-500 dark:text-gray-400">
+                            <div>{{ vehicle.created_at|date:"Y.m.d" }}</div>
+                        </div>
+                        
+                        <div class="flex items-center space-x-2">
+                            <a href="{% url 'vehicles:vehicle_detail' vehicle.pk %}" 
+                               class="flex items-center justify-center rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-2.5 py-1.5 text-xs font-medium text-gray-700 dark:text-gray-300 shadow-sm hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-colors">
+                                상세보기
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </li>
+            {% empty %}
+            <li class="px-6 py-12 text-center">
+                <div class="text-sm text-gray-500 dark:text-gray-400">
+                    {% if search_query %}
+                    검색 조건에 맞는 차량이 없습니다.
+                    {% else %}
+                    등록된 차량이 없습니다.
+                    {% endif %}
+                </div>
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+
+    <!-- 페이지네이션 -->
+    {% if is_paginated %}
+    <div class="flex items-center justify-between border-t border-gray-200 bg-white px-4 py-3 sm:px-6 dark:border-white/10 dark:bg-gray-800">
+        <div class="flex flex-1 justify-between sm:hidden">
+            {% if page_obj.has_previous %}
+            <a href="?{{ request.GET.urlencode }}&page={{ page_obj.previous_page_number }}" class="relative inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-white/10 dark:bg-white/5 dark:text-gray-200 dark:hover:bg-white/10">이전</a>
+            {% endif %}
+            {% if page_obj.has_next %}
+            <a href="?{{ request.GET.urlencode }}&page={{ page_obj.next_page_number }}" class="relative ml-3 inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-white/10 dark:bg-white/5 dark:text-gray-200 dark:hover:bg-white/10">다음</a>
+            {% endif %}
+        </div>
+        <div class="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
+            <div>
+                <p class="text-sm text-gray-700 dark:text-gray-300">
+                    <span class="font-medium">{{ page_obj.start_index }}</span>부터
+                    <span class="font-medium">{{ page_obj.end_index }}</span>까지 
+                    (총 <span class="font-medium">{{ paginator.count }}</span>개)
+                </p>
+            </div>
+            <div>
+                <nav aria-label="Pagination" class="isolate inline-flex -space-x-px rounded-md shadow-sm dark:shadow-none">
+                    {% if page_obj.has_previous %}
+                    <a href="?{{ request.GET.urlencode }}&page={{ page_obj.previous_page_number }}" class="relative inline-flex items-center rounded-l-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 dark:ring-gray-700 dark:hover:bg-white/5">
+                        <span class="sr-only">Previous</span>
+                        <svg viewBox="0 0 20 20" fill="currentColor" data-slot="icon" aria-hidden="true" class="size-5">
+                            <path d="M11.78 5.22a.75.75 0 0 1 0 1.06L8.06 10l3.72 3.72a.75.75 0 1 1-1.06 1.06l-4.25-4.25a.75.75 0 0 1 0-1.06l4.25-4.25a.75.75 0 0 1 1.06 0Z" clip-rule="evenodd" fill-rule="evenodd" />
+                        </svg>
+                    </a>
+                    {% endif %}
+                    
+                    {% for page_num in paginator.page_range %}
+                        {% if page_num == page_obj.number %}
+                        <span aria-current="page" class="relative z-10 inline-flex items-center bg-indigo-600 px-4 py-2 text-sm font-semibold text-white focus:z-20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 dark:bg-indigo-500 dark:focus-visible:outline-indigo-500">{{ page_num }}</span>
+                        {% else %}
+                        <a href="?{{ request.GET.urlencode }}&page={{ page_num }}" class="relative inline-flex items-center px-4 py-2 text-sm font-semibold text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 dark:text-gray-200 dark:ring-gray-700 dark:hover:bg-white/5">{{ page_num }}</a>
+                        {% endif %}
+                    {% endfor %}
+                    
+                    {% if page_obj.has_next %}
+                    <a href="?{{ request.GET.urlencode }}&page={{ page_obj.next_page_number }}" class="relative inline-flex items-center rounded-r-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 dark:ring-gray-700 dark:hover:bg-white/5">
+                        <span class="sr-only">Next</span>
+                        <svg viewBox="0 0 20 20" fill="currentColor" data-slot="icon" aria-hidden="true" class="size-5">
+                            <path d="M8.22 5.22a.75.75 0 0 1 1.06 0l4.25 4.25a.75.75 0 0 1 0 1.06l-4.25 4.25a.75.75 0 0 1-1.06-1.06L11.94 10 8.22 6.28a.75.75 0 0 1 0-1.06Z" clip-rule="evenodd" fill-rule="evenodd" />
+                        </svg>
+                    </a>
+                    {% endif %}
+                </nav>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

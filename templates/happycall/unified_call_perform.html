@@ -1,0 +1,466 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}해피콜 수행 - {{ happycall.service_request.customer_name }}{% endblock %}
+
+{% block extra_head %}
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<!-- Additional styling for dynamic forms -->
+<style>
+.stage-section {
+    transition: all 0.3s ease-in-out;
+}
+.stage-section.hidden {
+    display: none;
+}
+.revenue-option {
+    transition: opacity 0.2s ease;
+}
+.revenue-option.disabled {
+    opacity: 0.5;
+    pointer-events: none;
+}
+.form-field-group {
+    transition: max-height 0.3s ease, opacity 0.3s ease;
+    overflow: hidden;
+}
+.form-field-group.collapsed {
+    max-height: 0;
+    opacity: 0;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <div class="bg-white shadow rounded-lg">
+        <!-- Header -->
+        <div class="px-6 py-4 border-b border-gray-200">
+            <div class="flex justify-between items-center">
+                <div>
+                    <h1 class="text-2xl font-bold text-gray-900">해피콜 수행</h1>
+                    <p class="text-sm text-gray-600 mt-1">
+                        {{ happycall.service_request.customer_name }} - {{ happycall.service_request.vehicle.license_plate }}
+                    </p>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                        {{ happycall.get_call_stage_display }}
+                    </span>
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                        총 매출: ₩{{ happycall.total_revenue_generated|floatformat:0 }}
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Call Stage Selection -->
+        <div class="px-6 py-4 bg-gray-50 border-b">
+            <div class="flex space-x-2">
+                <button type="button" id="stage-1st" class="stage-btn px-4 py-2 text-sm font-medium rounded-md" data-stage="1st">
+                    1차 콜 (1주일 후)
+                </button>
+                <button type="button" id="stage-2nd" class="stage-btn px-4 py-2 text-sm font-medium rounded-md" data-stage="2nd">
+                    2차 콜 (3개월 후)
+                </button>
+                <button type="button" id="stage-3rd" class="stage-btn px-4 py-2 text-sm font-medium rounded-md" data-stage="3rd">
+                    3차 콜 (6개월 후)
+                </button>
+                <button type="button" id="stage-4th" class="stage-btn px-4 py-2 text-sm font-medium rounded-md" data-stage="4th">
+                    4차 콜 (9-12개월 후)
+                </button>
+            </div>
+        </div>
+
+        <!-- Main Form -->
+        <form id="unified-call-form" method="post" class="px-6 py-4">
+            {% csrf_token %}
+            <input type="hidden" name="current_stage" id="current_stage" value="">
+            
+            <!-- 1st Call Section -->
+            <div id="section-1st" class="stage-section">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">1차 콜 - 만족도 조사 및 엔진오일 프로모션</h3>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Customer Satisfaction -->
+                    <div class="form-field-group">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">서비스 만족도</label>
+                        <div class="flex space-x-6">
+                            <div class="flex items-center">
+                                <input id="satisfaction-1" name="first_call_satisfaction" type="radio" value="1" class="h-4 w-4 text-red-600 focus:ring-red-500 border-gray-300">
+                                <label for="satisfaction-1" class="ml-2 text-sm text-gray-900">불만족</label>
+                            </div>
+                            <div class="flex items-center">
+                                <input id="satisfaction-2" name="first_call_satisfaction" type="radio" value="2" class="h-4 w-4 text-yellow-600 focus:ring-yellow-500 border-gray-300">
+                                <label for="satisfaction-2" class="ml-2 text-sm text-gray-900">보통</label>
+                            </div>
+                            <div class="flex items-center">
+                                <input id="satisfaction-3" name="first_call_satisfaction" type="radio" value="3" class="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300">
+                                <label for="satisfaction-3" class="ml-2 text-sm text-gray-900">만족</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Engine Oil Promotion -->
+                    <div class="form-field-group">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">엔진오일 교환 관심도</label>
+                        <select name="engine_oil_interest" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <option value="">선택해주세요</option>
+                            <option value="very_interested">매우 관심있음</option>
+                            <option value="interested">관심있음</option>
+                            <option value="maybe">고려중</option>
+                            <option value="not_interested">관심없음</option>
+                        </select>
+                    </div>
+
+                    <!-- Revenue Options for 1st Call -->
+                    <div class="form-field-group col-span-full">
+                        <h4 class="text-md font-medium text-gray-900 mb-3">매출 기회</h4>
+                        <div class="space-y-3">
+                            <label class="flex items-center">
+                                <input type="checkbox" name="revenue_options" value="engine_oil" class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                                <span class="ml-2 text-sm text-gray-700">엔진오일 교환 예약 (₩80,000)</span>
+                            </label>
+                            <label class="flex items-center">
+                                <input type="checkbox" name="revenue_options" value="additional_service" class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                                <span class="ml-2 text-sm text-gray-700">추가 서비스 상담 예약</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Notes -->
+                    <div class="form-field-group col-span-full">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">메모</label>
+                        <textarea name="first_call_notes" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="콜 내용, 고객 반응 등을 기록하세요"></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2nd Call Section -->
+            <div id="section-2nd" class="stage-section hidden">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">2차 콜 - 운행상태 점검 및 추가서비스 안내</h3>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Vehicle Condition -->
+                    <div class="form-field-group">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">차량 운행상태</label>
+                        <select name="vehicle_condition" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <option value="">선택해주세요</option>
+                            <option value="excellent">매우 좋음</option>
+                            <option value="good">좋음</option>
+                            <option value="fair">보통</option>
+                            <option value="poor">나쁨</option>
+                            <option value="very_poor">매우 나쁨</option>
+                        </select>
+                    </div>
+
+                    <!-- Additional Services Interest -->
+                    <div class="form-field-group">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">추가 서비스 관심도</label>
+                        <select name="additional_service_interest" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <option value="">선택해주세요</option>
+                            <option value="very_interested">매우 관심있음</option>
+                            <option value="interested">관심있음</option>
+                            <option value="maybe">고려중</option>
+                            <option value="not_interested">관심없음</option>
+                        </select>
+                    </div>
+
+                    <!-- Insurance Interest -->
+                    <div class="form-field-group">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">보험 상담 관심도</label>
+                        <select name="insurance_interest" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <option value="">선택해주세요</option>
+                            <option value="very_interested">매우 관심있음</option>
+                            <option value="interested">관심있음</option>
+                            <option value="maybe">고려중</option>
+                            <option value="not_interested">관심없음</option>
+                        </select>
+                    </div>
+
+                    <!-- Insurance Type -->
+                    <div class="form-field-group">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">보험 종류</label>
+                        <select name="insurance_type" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <option value="">선택해주세요</option>
+                            <option value="comprehensive">종합보험</option>
+                            <option value="liability">책임보험</option>
+                            <option value="collision">충돌보험</option>
+                            <option value="comprehensive_plus">종합보험+</option>
+                        </select>
+                    </div>
+
+                    <!-- Revenue Options for 2nd Call -->
+                    <div class="form-field-group col-span-full">
+                        <h4 class="text-md font-medium text-gray-900 mb-3">매출 기회</h4>
+                        <div class="space-y-3">
+                            <label class="flex items-center">
+                                <input type="checkbox" name="revenue_options" value="brake_service" class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                                <span class="ml-2 text-sm text-gray-700">브레이크 점검 서비스 (₩120,000)</span>
+                            </label>
+                            <label class="flex items-center">
+                                <input type="checkbox" name="revenue_options" value="tire_service" class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                                <span class="ml-2 text-sm text-gray-700">타이어 교체 서비스 (₩200,000)</span>
+                            </label>
+                            <label class="flex items-center">
+                                <input type="checkbox" name="revenue_options" value="maintenance_package" class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                                <span class="ml-2 text-sm text-gray-700">종합 정비 패키지 (₩300,000)</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Notes -->
+                    <div class="form-field-group col-span-full">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">메모</label>
+                        <textarea name="second_call_notes" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="콜 내용, 고객 반응 등을 기록하세요"></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3rd Call Section -->
+            <div id="section-3rd" class="stage-section hidden">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">3차 콜 - 보험 상담 진행 및 중개수수료 계산</h3>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Insurance Consultation Result -->
+                    <div class="form-field-group">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">보험 상담 결과</label>
+                        <select name="insurance_consultation_result" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <option value="">선택해주세요</option>
+                            <option value="signed">계약 체결</option>
+                            <option value="interested">관심 표명</option>
+                            <option value="considering">검토 중</option>
+                            <option value="declined">거절</option>
+                        </select>
+                    </div>
+
+                    <!-- Insurance Premium -->
+                    <div class="form-field-group">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">보험료 (연간)</label>
+                        <input type="number" name="insurance_premium" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="1500000" min="0">
+                    </div>
+
+                    <!-- Commission Rate -->
+                    <div class="form-field-group">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">중개수수료율 (%)</label>
+                        <select name="commission_rate" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <option value="">선택해주세요</option>
+                            <option value="3">3%</option>
+                            <option value="5">5%</option>
+                            <option value="7">7%</option>
+                            <option value="10">10%</option>
+                        </select>
+                    </div>
+
+                    <!-- Calculated Commission -->
+                    <div class="form-field-group">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">예상 중개수수료</label>
+                        <input type="text" id="calculated_commission" class="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50" readonly placeholder="자동 계산됩니다">
+                    </div>
+
+                    <!-- Revenue Options for 3rd Call -->
+                    <div class="form-field-group col-span-full">
+                        <h4 class="text-md font-medium text-gray-900 mb-3">매출 기회</h4>
+                        <div class="space-y-3">
+                            <label class="flex items-center">
+                                <input type="checkbox" name="revenue_options" value="insurance_commission" class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                                <span class="ml-2 text-sm text-gray-700">보험 중개수수료 (자동 계산)</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Notes -->
+                    <div class="form-field-group col-span-full">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">메모</label>
+                        <textarea name="third_call_notes" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="보험 상담 세부 내용을 기록하세요"></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 4th Call Section -->
+            <div id="section-4th" class="stage-section hidden">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">4차 콜 - 다음 검사 안내 및 장기고객 관리</h3>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Next Inspection Interest -->
+                    <div class="form-field-group">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">다음 검사 관심도</label>
+                        <select name="next_inspection_interest" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <option value="">선택해주세요</option>
+                            <option value="definitely">확실히 이용</option>
+                            <option value="probably">아마 이용</option>
+                            <option value="maybe">고려중</option>
+                            <option value="unlikely">가능성 낮음</option>
+                            <option value="no">이용 안함</option>
+                        </select>
+                    </div>
+
+                    <!-- Reservation Request -->
+                    <div class="form-field-group">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">예약 신청 여부</label>
+                        <select name="reservation_requested" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <option value="">선택해주세요</option>
+                            <option value="yes">예약 신청</option>
+                            <option value="callback">콜백 요청</option>
+                            <option value="no">신청 안함</option>
+                        </select>
+                    </div>
+
+                    <!-- Long-term Customer Status -->
+                    <div class="form-field-group">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">장기고객 분류</label>
+                        <select name="longterm_customer_status" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <option value="">선택해주세요</option>
+                            <option value="vip">VIP 고객</option>
+                            <option value="loyal">충성 고객</option>
+                            <option value="regular">일반 고객</option>
+                            <option value="occasional">가끔 이용 고객</option>
+                        </select>
+                    </div>
+
+                    <!-- Customer Feedback -->
+                    <div class="form-field-group">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">고객 피드백</label>
+                        <select name="customer_feedback" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <option value="">선택해주세요</option>
+                            <option value="very_positive">매우 긍정적</option>
+                            <option value="positive">긍정적</option>
+                            <option value="neutral">보통</option>
+                            <option value="negative">부정적</option>
+                            <option value="very_negative">매우 부정적</option>
+                        </select>
+                    </div>
+
+                    <!-- Revenue Options for 4th Call -->
+                    <div class="form-field-group col-span-full">
+                        <h4 class="text-md font-medium text-gray-900 mb-3">매출 기회</h4>
+                        <div class="space-y-3">
+                            <label class="flex items-center">
+                                <input type="checkbox" name="revenue_options" value="next_inspection_reservation" class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                                <span class="ml-2 text-sm text-gray-700">다음 검사 예약 (₩150,000)</span>
+                            </label>
+                            <label class="flex items-center">
+                                <input type="checkbox" name="revenue_options" value="vip_package" class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                                <span class="ml-2 text-sm text-gray-700">VIP 패키지 가입 (₩500,000)</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Notes -->
+                    <div class="form-field-group col-span-full">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">메모</label>
+                        <textarea name="fourth_call_notes" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="장기고객 관리 방안, 특이사항 등을 기록하세요"></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Common Actions -->
+            <div class="mt-8 border-t pt-6">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <!-- Call Result -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">콜 결과</label>
+                        <select name="call_result" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <option value="">선택해주세요</option>
+                            <option value="completed">완료</option>
+                            <option value="callback_requested">콜백 요청</option>
+                            <option value="rejected">고객 거부</option>
+                            <option value="failed">연결 실패</option>
+                        </select>
+                    </div>
+
+                    <!-- Revenue Amount -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">예상 매출 금액</label>
+                        <input type="number" name="revenue_amount" id="revenue_amount" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="0" min="0" readonly>
+                    </div>
+
+                    <!-- Next Action -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">다음 액션</label>
+                        <select name="next_action" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <option value="">선택해주세요</option>
+                            <option value="schedule_next_stage">다음 단계 스케줄</option>
+                            <option value="create_sales_voucher">매출전표 생성</option>
+                            <option value="schedule_callback">콜백 스케줄</option>
+                            <option value="complete_series">콜 시리즈 완료</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Submit Buttons -->
+            <div class="mt-6 flex justify-between">
+                <div class="flex space-x-2">
+                    <button type="button" id="save-draft" class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500">
+                        임시저장
+                    </button>
+                    <!-- Task 6.1: 고객 거부 의사 즉시 기록 버튼 -->
+                    <button type="button" id="customer-rejection-btn" class="px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+                        <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                        고객 거부
+                    </button>
+                </div>
+                <div class="flex space-x-2">
+                    <button type="button" onclick="history.back()" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                        취소
+                    </button>
+                    <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                        콜 완료
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Revenue Calculation Modal -->
+<div id="revenue-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden">
+    <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+        <div class="mt-3">
+            <h3 class="text-lg font-medium text-gray-900 mb-4">매출 계산 결과</h3>
+            <div id="revenue-details" class="space-y-2">
+                <!-- Dynamic content -->
+            </div>
+            <div class="mt-4 flex justify-end">
+                <button type="button" id="close-revenue-modal" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
+                    확인
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Task 6.1: Include Customer Rejection Modal -->
+{% include 'happycall/customer_rejection_modal.html' %}
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/happycall_unified.js' %}"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize HappyCall Unified System
+    const unifiedSystem = new HappyCallUnified({
+        happycallId: {{ happycall.id }},
+        currentStage: '{{ happycall.call_stage }}',
+        csrfToken: '{{ csrf_token }}',
+        revenueOptions: {
+            engine_oil: 80000,
+            additional_service: 0, // Will be determined by customer
+            brake_service: 120000,
+            tire_service: 200000,
+            maintenance_package: 300000,
+            insurance_commission: 0, // Calculated based on premium
+            next_inspection_reservation: 150000,
+            vip_package: 500000
+        }
+    });
+    
+    unifiedSystem.init();
+});
+</script>
+{% endblock %}

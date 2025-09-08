@@ -1,0 +1,304 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}해피콜 목록{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 dark:bg-gray-900 py-8">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <!-- 헤더 -->
+        <div class="mb-8">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-3xl font-bold text-gray-900 dark:text-white">{{ page_title|default:"해피콜 전체 목록" }}</h1>
+                    <p class="mt-2 text-gray-600 dark:text-gray-400">모든 해피콜 이력 및 현황</p>
+                </div>
+                <div class="flex space-x-3">
+                    <a href="{% url 'happycall:my_happycalls' %}" 
+                       class="px-4 py-2 bg-gray-600 text-white text-sm font-medium rounded-md hover:bg-gray-700">
+                        내 할일
+                    </a>
+                    {% if user.is_superuser %}
+                    <a href="{% url 'happycall:manager_dashboard' %}" 
+                       class="px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-md hover:bg-purple-700">
+                        팀장 대시보드
+                    </a>
+                    {% endif %}
+                    <a href="{% url 'happycall:assign' %}" 
+                       class="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-md hover:bg-indigo-700">
+                        일괄 생성
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- 검색 및 필터 -->
+        <div class="bg-white dark:bg-gray-800 shadow-sm rounded-lg mb-6">
+            <div class="p-6">
+                <form method="get" class="grid grid-cols-1 gap-4 sm:grid-cols-5">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">검색</label>
+                        <input type="text" name="search" value="{{ request.GET.search }}" 
+                               placeholder="고객명, 전화번호, 메모 검색"
+                               class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">콜 단계</label>
+                        <select name="stage" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                            <option value="">전체</option>
+                            <option value="1st" {% if request.GET.stage == '1st' %}selected{% endif %}>1차콜 (1주일 후)</option>
+                            <option value="2nd" {% if request.GET.stage == '2nd' %}selected{% endif %}>2차콜 (3개월 후)</option>
+                            <option value="3rd" {% if request.GET.stage == '3rd' %}selected{% endif %}>3차콜 (6개월 후)</option>
+                            <option value="4th" {% if request.GET.stage == '4th' %}selected{% endif %}>4차콜 (9-12개월 후)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">상태</label>
+                        <select name="status" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                            <option value="">전체</option>
+                            <option value="scheduled" {% if request.GET.status == 'scheduled' %}selected{% endif %}>예정</option>
+                            <option value="in_progress" {% if request.GET.status == 'in_progress' %}selected{% endif %}>진행중</option>
+                            <option value="completed" {% if request.GET.status == 'completed' %}selected{% endif %}>완료</option>
+                            <option value="no_answer" {% if request.GET.status == 'no_answer' %}selected{% endif %}>부재중</option>
+                            <option value="refused" {% if request.GET.status == 'refused' %}selected{% endif %}>거부</option>
+                        </select>
+                    </div>
+                    <div class="flex items-end">
+                        <button type="submit" class="w-full px-4 py-2 bg-gray-600 text-white text-sm font-medium rounded-md hover:bg-gray-700">
+                            조회
+                        </button>
+                    </div>
+                    <div class="flex items-end">
+                        <a href="{% url 'happycall:list' %}" class="w-full px-4 py-2 bg-gray-400 text-white text-sm font-medium rounded-md hover:bg-gray-500 text-center">
+                            초기화
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- 해피콜 목록 -->
+        <div class="bg-white dark:bg-gray-800 shadow-sm rounded-lg">
+            <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
+                    해피콜 목록 
+                    {% if page_obj %}
+                    <span class="text-sm font-normal text-gray-500 dark:text-gray-400">
+                        ({{ page_obj.paginator.count }}건)
+                    </span>
+                    {% endif %}
+                </h3>
+            </div>
+            
+            {% if happycalls %}
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                    <thead class="bg-gray-50 dark:bg-gray-700">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                                고객정보
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                                콜 단계
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                                서비스 일자
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                                만족도
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                                통화자
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                                작업
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                        {% for happycall in happycalls %}
+                        <tr class="hover:bg-gray-50 dark:hover:bg-gray-700">
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="flex items-center">
+                                    <div>
+                                        <div class="text-sm font-medium text-gray-900 dark:text-white">
+                                            {{ happycall.service_request.customer.name|default:happycall.service_request.temp_customer_name }}
+                                        </div>
+                                        <div class="text-sm text-gray-500 dark:text-gray-400">
+                                            {{ happycall.service_request.customer.phone|default:happycall.service_request.temp_customer_phone }}
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="flex flex-col space-y-1">
+                                    <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full
+                                        {% if happycall.call_stage|slice:":3" == "1st" %}
+                                            bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200
+                                        {% elif happycall.call_stage|slice:":3" == "2nd" %}
+                                            bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200
+                                        {% elif happycall.call_stage|slice:":3" == "3rd" %}
+                                            bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200
+                                        {% elif happycall.call_stage|slice:":3" == "4th" %}
+                                            bg-pink-100 text-pink-800 dark:bg-pink-900 dark:text-pink-200
+                                        {% else %}
+                                            bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200
+                                        {% endif %}">
+                                        {{ happycall.get_call_stage_display }}
+                                    </span>
+                                    <span class="inline-flex px-2 py-1 text-xs font-medium rounded-full
+                                        {% if happycall.call_stage|slice:"-8:" == "_pending" %}
+                                            bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200
+                                        {% elif happycall.call_stage|slice:"-12:" == "_in_progress" %}
+                                            bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200
+                                        {% elif happycall.call_stage|slice:"-10:" == "_completed" %}
+                                            bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200
+                                        {% elif happycall.call_stage|slice:"-7:" == "_failed" %}
+                                            bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200
+                                        {% elif happycall.call_stage == "rejected" %}
+                                            bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200
+                                        {% else %}
+                                            bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200
+                                        {% endif %}">
+                                        {% if happycall.call_stage|slice:"-8:" == "_pending" %}예정
+                                        {% elif happycall.call_stage|slice:"-12:" == "_in_progress" %}진행중  
+                                        {% elif happycall.call_stage|slice:"-10:" == "_completed" %}완료
+                                        {% elif happycall.call_stage|slice:"-7:" == "_failed" %}실패
+                                        {% elif happycall.call_stage == "rejected" %}거부
+                                        {% else %}{{ happycall.call_stage }}{% endif %}
+                                    </span>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                                {{ happycall.service_request.created_at|date:"Y.m.d" }}
+                                <div class="text-xs text-gray-500 dark:text-gray-400">
+                                    {{ happycall.service_request.service_type.name }}
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                                {% if happycall.overall_satisfaction %}
+                                    {{ happycall.overall_satisfaction }}점
+                                    {% if happycall.average_satisfaction %}
+                                    <div class="text-xs text-gray-500">(평균: {{ happycall.average_satisfaction|floatformat:1 }})</div>
+                                    {% endif %}
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                                {% if happycall.call_stage|slice:":3" == "1st" and happycall.first_call_caller %}
+                                    {{ happycall.first_call_caller.get_full_name|default:happycall.first_call_caller.username }}
+                                {% elif happycall.call_stage|slice:":3" == "2nd" and happycall.second_call_caller %}
+                                    {{ happycall.second_call_caller.get_full_name|default:happycall.second_call_caller.username }}
+                                {% elif happycall.call_stage|slice:":3" == "3rd" and happycall.third_call_caller %}
+                                    {{ happycall.third_call_caller.get_full_name|default:happycall.third_call_caller.username }}
+                                {% elif happycall.call_stage|slice:":3" == "4th" and happycall.fourth_call_caller %}
+                                    {{ happycall.fourth_call_caller.get_full_name|default:happycall.fourth_call_caller.username }}
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                <div class="flex space-x-2">
+                                    {% if happycall.call_stage|slice:"-8:" == "_pending" or happycall.call_stage|slice:"-12:" == "_in_progress" %}
+                                        <a href="{% url 'happycall:execute' happycall.pk %}" 
+                                           class="text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300">
+                                            수행
+                                        </a>
+                                    {% endif %}
+                                    <a href="{% url 'happycall:detail' happycall.pk %}" 
+                                       class="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300">
+                                        상세
+                                    </a>
+                                    <a href="{% url 'happycall:update' happycall.pk %}" 
+                                       class="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300">
+                                        수정
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- 페이지네이션 -->
+            {% if page_obj.has_other_pages %}
+            <div class="bg-white dark:bg-gray-800 px-4 py-3 border-t border-gray-200 dark:border-gray-700 sm:px-6">
+                <div class="flex items-center justify-between">
+                    <div class="flex justify-between flex-1 sm:hidden">
+                        {% if page_obj.has_previous %}
+                        <a href="?{% if request.GET.search %}search={{ request.GET.search }}&{% endif %}{% if request.GET.stage %}stage={{ request.GET.stage }}&{% endif %}{% if request.GET.status %}status={{ request.GET.status }}&{% endif %}page={{ page_obj.previous_page_number }}" 
+                           class="relative inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-md text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700">
+                            이전
+                        </a>
+                        {% endif %}
+                        {% if page_obj.has_next %}
+                        <a href="?{% if request.GET.search %}search={{ request.GET.search }}&{% endif %}{% if request.GET.stage %}stage={{ request.GET.stage }}&{% endif %}{% if request.GET.status %}status={{ request.GET.status }}&{% endif %}page={{ page_obj.next_page_number }}" 
+                           class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-md text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700">
+                            다음
+                        </a>
+                        {% endif %}
+                    </div>
+                    <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+                        <div>
+                            <p class="text-sm text-gray-700 dark:text-gray-300">
+                                <span class="font-medium">{{ page_obj.start_index }}</span>
+                                -
+                                <span class="font-medium">{{ page_obj.end_index }}</span>
+                                /
+                                <span class="font-medium">{{ page_obj.paginator.count }}</span>
+                                건
+                            </p>
+                        </div>
+                        <div>
+                            <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
+                                {% if page_obj.has_previous %}
+                                <a href="?{% if request.GET.search %}search={{ request.GET.search }}&{% endif %}{% if request.GET.stage %}stage={{ request.GET.stage }}&{% endif %}{% if request.GET.status %}status={{ request.GET.status }}&{% endif %}page={{ page_obj.previous_page_number }}" 
+                                   class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm font-medium text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700">
+                                    이전
+                                </a>
+                                {% endif %}
+                                
+                                {% for num in page_obj.paginator.page_range %}
+                                {% if page_obj.number == num %}
+                                <span class="relative inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 bg-indigo-50 dark:bg-indigo-900 text-sm font-medium text-indigo-600 dark:text-indigo-400">
+                                    {{ num }}
+                                </span>
+                                {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                                <a href="?{% if request.GET.search %}search={{ request.GET.search }}&{% endif %}{% if request.GET.stage %}stage={{ request.GET.stage }}&{% endif %}{% if request.GET.status %}status={{ request.GET.status }}&{% endif %}page={{ num }}" 
+                                   class="relative inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">
+                                    {{ num }}
+                                </a>
+                                {% endif %}
+                                {% endfor %}
+                                
+                                {% if page_obj.has_next %}
+                                <a href="?{% if request.GET.search %}search={{ request.GET.search }}&{% endif %}{% if request.GET.stage %}stage={{ request.GET.stage }}&{% endif %}{% if request.GET.status %}status={{ request.GET.status }}&{% endif %}page={{ page_obj.next_page_number }}" 
+                                   class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm font-medium text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700">
+                                    다음
+                                </a>
+                                {% endif %}
+                            </nav>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+            
+            {% else %}
+            <!-- 빈 상태 -->
+            <div class="text-center py-12">
+                <div class="text-gray-400 mb-4">
+                    <div class="w-16 h-16 mx-auto bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center">
+                        <span class="text-2xl">📞</span>
+                    </div>
+                </div>
+                <h3 class="mt-2 text-sm font-medium text-gray-900 dark:text-white">해피콜이 없습니다</h3>
+                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">서비스 완료 후 자동으로 해피콜이 생성됩니다.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

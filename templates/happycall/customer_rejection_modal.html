@@ -1,0 +1,410 @@
+<!-- Task 6.1: 고객 거부 즉시 기록 모달 -->
+<div id="customer-rejection-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-50">
+    <div class="relative top-20 mx-auto p-5 border w-11/12 max-w-2xl shadow-lg rounded-md bg-white">
+        <div class="mt-3">
+            <!-- Header -->
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-medium text-gray-900">고객 거부 의사 기록</h3>
+                <button type="button" id="close-rejection-modal" class="text-gray-400 hover:text-gray-600">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Form -->
+            <form id="rejection-form">
+                <input type="hidden" name="happycall_id" id="rejection-happycall-id">
+                <input type="hidden" name="current_stage" id="rejection-current-stage">
+                
+                <!-- Rejection Type -->
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">거부 의사 유형</label>
+                    <div class="space-y-2">
+                        <label class="flex items-center">
+                            <input type="radio" name="rejection_type" value="all_calls" class="h-4 w-4 text-red-600 border-gray-300 focus:ring-red-500" checked>
+                            <span class="ml-2 text-sm text-gray-700">모든 해피콜 거부</span>
+                        </label>
+                        <label class="flex items-center">
+                            <input type="radio" name="rejection_type" value="current_stage" class="h-4 w-4 text-red-600 border-gray-300 focus:ring-red-500">
+                            <span class="ml-2 text-sm text-gray-700">현재 단계만 거부</span>
+                        </label>
+                        <label class="flex items-center">
+                            <input type="radio" name="rejection_type" value="remaining_stages" class="h-4 w-4 text-red-600 border-gray-300 focus:ring-red-500">
+                            <span class="ml-2 text-sm text-gray-700">이후 단계 거부</span>
+                        </label>
+                        <label class="flex items-center">
+                            <input type="radio" name="rejection_type" value="specific_service" class="h-4 w-4 text-red-600 border-gray-300 focus:ring-red-500">
+                            <span class="ml-2 text-sm text-gray-700">특정 서비스만 거부</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Specific Service (conditional) -->
+                <div id="specific-service-section" class="mb-4 hidden">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">거부할 서비스</label>
+                    <div class="space-y-2">
+                        <label class="flex items-center">
+                            <input type="checkbox" name="rejected_services" value="engine_oil" class="h-4 w-4 text-red-600 border-gray-300 rounded focus:ring-red-500">
+                            <span class="ml-2 text-sm text-gray-700">엔진오일 관련 서비스</span>
+                        </label>
+                        <label class="flex items-center">
+                            <input type="checkbox" name="rejected_services" value="insurance" class="h-4 w-4 text-red-600 border-gray-300 rounded focus:ring-red-500">
+                            <span class="ml-2 text-sm text-gray-700">보험 상담 서비스</span>
+                        </label>
+                        <label class="flex items-center">
+                            <input type="checkbox" name="rejected_services" value="additional_maintenance" class="h-4 w-4 text-red-600 border-gray-300 rounded focus:ring-red-500">
+                            <span class="ml-2 text-sm text-gray-700">추가 정비 서비스</span>
+                        </label>
+                        <label class="flex items-center">
+                            <input type="checkbox" name="rejected_services" value="next_inspection" class="h-4 w-4 text-red-600 border-gray-300 rounded focus:ring-red-500">
+                            <span class="ml-2 text-sm text-gray-700">다음 검사 예약</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Customer Reason -->
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">고객이 언급한 거부 사유</label>
+                    <select name="customer_reason" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500" required>
+                        <option value="">선택해주세요</option>
+                        <option value="too_frequent">전화가 너무 자주 옴</option>
+                        <option value="not_interested">서비스에 관심 없음</option>
+                        <option value="financial_burden">경제적 부담</option>
+                        <option value="satisfied_with_current">현재 서비스에 만족</option>
+                        <option value="time_inconvenient">통화 시간이 불편함</option>
+                        <option value="privacy_concerns">개인정보 우려</option>
+                        <option value="bad_experience">이전 서비스 불만족</option>
+                        <option value="competitor_using">타 업체 이용 중</option>
+                        <option value="moving_relocating">이사/이전 예정</option>
+                        <option value="vehicle_sold">차량 매각</option>
+                        <option value="other">기타</option>
+                    </select>
+                </div>
+
+                <!-- Customer Reason Details (for 'other') -->
+                <div id="other-reason-section" class="mb-4 hidden">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">기타 사유 상세</label>
+                    <textarea name="customer_reason_details" rows="2" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500" placeholder="고객이 언급한 구체적인 사유를 입력하세요"></textarea>
+                </div>
+
+                <!-- Customer Attitude -->
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">고객 태도</label>
+                    <select name="customer_attitude" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500">
+                        <option value="">선택해주세요</option>
+                        <option value="polite">정중함</option>
+                        <option value="neutral">보통</option>
+                        <option value="annoyed">약간 짜증</option>
+                        <option value="angry">화남</option>
+                        <option value="very_angry">매우 화남</option>
+                    </select>
+                </div>
+
+                <!-- Future Contact Preference -->
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">향후 연락 희망 여부</label>
+                    <div class="space-y-2">
+                        <label class="flex items-center">
+                            <input type="radio" name="future_contact_ok" value="yes" class="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500">
+                            <span class="ml-2 text-sm text-gray-700">필요시 연락 가능</span>
+                        </label>
+                        <label class="flex items-center">
+                            <input type="radio" name="future_contact_ok" value="limited" class="h-4 w-4 text-yellow-600 border-gray-300 focus:ring-yellow-500">
+                            <span class="ml-2 text-sm text-gray-700">긴급시에만 연락</span>
+                        </label>
+                        <label class="flex items-center">
+                            <input type="radio" name="future_contact_ok" value="no" class="h-4 w-4 text-red-600 border-gray-300 focus:ring-red-500">
+                            <span class="ml-2 text-sm text-gray-700">일체 연락 거부</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Staff Notes -->
+                <div class="mb-6">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">담당자 메모</label>
+                    <textarea name="staff_notes" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="콜 상황, 고객 반응, 추가 특이사항 등을 상세히 기록하세요" required></textarea>
+                </div>
+
+                <!-- Revenue Impact Estimation -->
+                <div class="mb-6 p-4 bg-red-50 border border-red-200 rounded-md">
+                    <h4 class="text-sm font-medium text-red-800 mb-2">예상 매출 손실</h4>
+                    <div class="grid grid-cols-2 gap-4 text-sm">
+                        <div>
+                            <span class="text-gray-600">현재 단계 손실:</span>
+                            <span class="font-medium text-red-600" id="current-stage-loss">₩0</span>
+                        </div>
+                        <div>
+                            <span class="text-gray-600">총 예상 손실:</span>
+                            <span class="font-medium text-red-600" id="total-revenue-loss">₩0</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="flex justify-end space-x-3">
+                    <button type="button" id="cancel-rejection" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500">
+                        취소
+                    </button>
+                    <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+                        거부 의사 기록
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+// Customer Rejection Modal JavaScript
+class CustomerRejectionModal {
+    constructor() {
+        this.modal = document.getElementById('customer-rejection-modal');
+        this.form = document.getElementById('rejection-form');
+        this.revenueAmounts = {
+            'engine_oil': 80000,
+            'brake_service': 120000,
+            'tire_service': 200000,
+            'maintenance_package': 300000,
+            'insurance_commission': 150000, // Average
+            'next_inspection_reservation': 150000,
+            'vip_package': 500000
+        };
+        
+        this.bindEvents();
+    }
+    
+    bindEvents() {
+        // Modal close events
+        document.getElementById('close-rejection-modal').addEventListener('click', () => {
+            this.hide();
+        });
+        
+        document.getElementById('cancel-rejection').addEventListener('click', () => {
+            this.hide();
+        });
+        
+        // Show/hide specific service section
+        this.form.querySelectorAll('input[name="rejection_type"]').forEach(radio => {
+            radio.addEventListener('change', (e) => {
+                const specificSection = document.getElementById('specific-service-section');
+                if (e.target.value === 'specific_service') {
+                    specificSection.classList.remove('hidden');
+                } else {
+                    specificSection.classList.add('hidden');
+                }
+                this.updateRevenueLoss();
+            });
+        });
+        
+        // Show/hide other reason details
+        this.form.querySelector('select[name="customer_reason"]').addEventListener('change', (e) => {
+            const otherSection = document.getElementById('other-reason-section');
+            if (e.target.value === 'other') {
+                otherSection.classList.remove('hidden');
+            } else {
+                otherSection.classList.add('hidden');
+            }
+        });
+        
+        // Update revenue loss when services change
+        this.form.querySelectorAll('input[name="rejected_services"]').forEach(checkbox => {
+            checkbox.addEventListener('change', () => {
+                this.updateRevenueLoss();
+            });
+        });
+        
+        // Form submission
+        this.form.addEventListener('submit', (e) => {
+            e.preventDefault();
+            this.submitRejection();
+        });
+        
+        // Close modal when clicking outside
+        this.modal.addEventListener('click', (e) => {
+            if (e.target === this.modal) {
+                this.hide();
+            }
+        });
+    }
+    
+    show(happycallId, currentStage) {
+        document.getElementById('rejection-happycall-id').value = happycallId;
+        document.getElementById('rejection-current-stage').value = currentStage;
+        this.modal.classList.remove('hidden');
+        this.updateRevenueLoss();
+        
+        // Focus on first input
+        setTimeout(() => {
+            this.form.querySelector('input[name="rejection_type"]:checked').focus();
+        }, 100);
+    }
+    
+    hide() {
+        this.modal.classList.add('hidden');
+        this.form.reset();
+        document.getElementById('specific-service-section').classList.add('hidden');
+        document.getElementById('other-reason-section').classList.add('hidden');
+    }
+    
+    updateRevenueLoss() {
+        const rejectionType = this.form.querySelector('input[name="rejection_type"]:checked')?.value;
+        const currentStage = document.getElementById('rejection-current-stage').value;
+        
+        let currentStageLoss = 0;
+        let totalLoss = 0;
+        
+        if (rejectionType === 'all_calls') {
+            // Calculate loss for all remaining stages
+            totalLoss = this.calculateAllStagesLoss(currentStage);
+            currentStageLoss = this.calculateCurrentStageLoss(currentStage);
+        } else if (rejectionType === 'current_stage') {
+            currentStageLoss = this.calculateCurrentStageLoss(currentStage);
+            totalLoss = currentStageLoss;
+        } else if (rejectionType === 'remaining_stages') {
+            totalLoss = this.calculateRemainingStagesLoss(currentStage);
+            currentStageLoss = 0;
+        } else if (rejectionType === 'specific_service') {
+            const selectedServices = Array.from(this.form.querySelectorAll('input[name="rejected_services"]:checked'))
+                .map(cb => cb.value);
+            totalLoss = this.calculateSpecificServicesLoss(selectedServices);
+            currentStageLoss = this.calculateCurrentStageServiceLoss(currentStage, selectedServices);
+        }
+        
+        document.getElementById('current-stage-loss').textContent = `₩${currentStageLoss.toLocaleString()}`;
+        document.getElementById('total-revenue-loss').textContent = `₩${totalLoss.toLocaleString()}`;
+    }
+    
+    calculateCurrentStageLoss(stage) {
+        const stageLossMap = {
+            '1st': ['engine_oil'],
+            '2nd': ['brake_service', 'tire_service', 'maintenance_package'],
+            '3rd': ['insurance_commission'],
+            '4th': ['next_inspection_reservation', 'vip_package']
+        };
+        
+        const stageServices = stageLossMap[stage] || [];
+        return stageServices.reduce((total, service) => total + (this.revenueAmounts[service] || 0), 0);
+    }
+    
+    calculateAllStagesLoss(currentStage) {
+        const allServices = Object.values(this.revenueAmounts);
+        return allServices.reduce((total, amount) => total + amount, 0);
+    }
+    
+    calculateRemainingStagesLoss(currentStage) {
+        const stageOrder = ['1st', '2nd', '3rd', '4th'];
+        const currentIndex = stageOrder.indexOf(currentStage);
+        
+        let total = 0;
+        for (let i = currentIndex + 1; i < stageOrder.length; i++) {
+            total += this.calculateCurrentStageLoss(stageOrder[i]);
+        }
+        return total;
+    }
+    
+    calculateSpecificServicesLoss(services) {
+        const serviceRevenueMap = {
+            'engine_oil': ['engine_oil'],
+            'insurance': ['insurance_commission'],
+            'additional_maintenance': ['brake_service', 'tire_service', 'maintenance_package'],
+            'next_inspection': ['next_inspection_reservation', 'vip_package']
+        };
+        
+        let total = 0;
+        services.forEach(service => {
+            const revenueServices = serviceRevenueMap[service] || [];
+            revenueServices.forEach(revenueService => {
+                total += this.revenueAmounts[revenueService] || 0;
+            });
+        });
+        return total;
+    }
+    
+    calculateCurrentStageServiceLoss(stage, services) {
+        // Calculate loss only for current stage and selected services
+        const stageLossMap = {
+            '1st': { 'engine_oil': ['engine_oil'] },
+            '2nd': { 'additional_maintenance': ['brake_service', 'tire_service', 'maintenance_package'] },
+            '3rd': { 'insurance': ['insurance_commission'] },
+            '4th': { 'next_inspection': ['next_inspection_reservation', 'vip_package'] }
+        };
+        
+        const stageServices = stageLossMap[stage] || {};
+        let total = 0;
+        
+        services.forEach(service => {
+            if (stageServices[service]) {
+                stageServices[service].forEach(revenueService => {
+                    total += this.revenueAmounts[revenueService] || 0;
+                });
+            }
+        });
+        
+        return total;
+    }
+    
+    async submitRejection() {
+        const formData = new FormData(this.form);
+        const happycallId = formData.get('happycall_id');
+        
+        try {
+            const response = await fetch(`/happycall/${happycallId}/request-rejection/`, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                }
+            });
+            
+            if (response.ok) {
+                const result = await response.json();
+                this.showSuccess(result.message || '고객 거부 의사가 기록되었습니다.');
+                this.hide();
+                
+                // Trigger parent form to handle rejection
+                if (window.handleCustomerRejection) {
+                    window.handleCustomerRejection(formData);
+                }
+            } else {
+                const error = await response.json();
+                this.showError(error.message || '거부 의사 기록 중 오류가 발생했습니다.');
+            }
+        } catch (error) {
+            console.error('Rejection submission error:', error);
+            this.showError('네트워크 오류가 발생했습니다.');
+        }
+    }
+    
+    showSuccess(message) {
+        // Create success notification
+        const notification = document.createElement('div');
+        notification.className = 'fixed top-4 right-4 p-4 rounded-md shadow-lg z-50 bg-green-500 text-white max-w-sm';
+        notification.textContent = message;
+        
+        document.body.appendChild(notification);
+        
+        setTimeout(() => {
+            notification.remove();
+        }, 3000);
+    }
+    
+    showError(message) {
+        // Create error notification
+        const notification = document.createElement('div');
+        notification.className = 'fixed top-4 right-4 p-4 rounded-md shadow-lg z-50 bg-red-500 text-white max-w-sm';
+        notification.textContent = message;
+        
+        document.body.appendChild(notification);
+        
+        setTimeout(() => {
+            notification.remove();
+        }, 5000);
+    }
+}
+
+// Initialize modal when DOM is ready
+document.addEventListener('DOMContentLoaded', function() {
+    window.customerRejectionModal = new CustomerRejectionModal();
+});
+</script>
