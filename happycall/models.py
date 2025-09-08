@@ -53,11 +53,9 @@ class HappyCall(models.Model):
     ]
     
     SATISFACTION_CHOICES = [
-        (5, '매우 만족'),
-        (4, '만족'),
-        (3, '보통'),
-        (2, '불만족'),
-        (1, '매우 불만족'),
+        (3, '만족'),
+        (2, '보통'),
+        (1, '불만족'),
     ]
     
     service_request = models.OneToOneField(ServiceRequest, on_delete=models.CASCADE, verbose_name='서비스 요청')
@@ -98,25 +96,25 @@ class HappyCall(models.Model):
     overall_satisfaction = models.IntegerField(
         '전체 만족도', 
         choices=SATISFACTION_CHOICES, 
-        validators=[MinValueValidator(1), MaxValueValidator(5)],
+        validators=[MinValueValidator(1), MaxValueValidator(3)],
         null=True, blank=True
     )
     service_quality = models.IntegerField(
         '서비스 품질', 
         choices=SATISFACTION_CHOICES, 
-        validators=[MinValueValidator(1), MaxValueValidator(5)],
+        validators=[MinValueValidator(1), MaxValueValidator(3)],
         null=True, blank=True
     )
     staff_kindness = models.IntegerField(
         '직원 친절도', 
         choices=SATISFACTION_CHOICES, 
-        validators=[MinValueValidator(1), MaxValueValidator(5)],
+        validators=[MinValueValidator(1), MaxValueValidator(3)],
         null=True, blank=True
     )
     price_satisfaction = models.IntegerField(
         '가격 만족도', 
         choices=SATISFACTION_CHOICES, 
-        validators=[MinValueValidator(1), MaxValueValidator(5)],
+        validators=[MinValueValidator(1), MaxValueValidator(3)],
         null=True, blank=True
     )
     

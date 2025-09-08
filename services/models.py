@@ -98,6 +98,7 @@ class ServiceRequest(models.Model):
     # 일정 정보
     requested_date = models.DateTimeField('희망 일시', blank=True, null=True)
     scheduled_date = models.DateTimeField('확정 일시', blank=True, null=True)
+    service_date = models.DateTimeField('서비스 실행일시', blank=True, null=True, help_text='실제 서비스가 수행된 날짜와 시간')
     assigned_employee = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, 
                                         related_name='assigned_services', verbose_name='담당 직원')
     

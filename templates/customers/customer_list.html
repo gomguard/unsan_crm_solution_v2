@@ -273,11 +273,11 @@
                                     <div class="text-sm font-medium text-gray-900 dark:text-white truncate">
                                         {{ customer.name|default:"미등록" }}
                                     </div>
-                                    {% if customer.get_full_address %}
+                                    {% comment %} {% if customer.get_full_address %}
                                     <div class="text-sm text-gray-500 dark:text-gray-400 truncate">
                                         {{ customer.get_full_address }}
                                     </div>
-                                    {% endif %}
+                                    {% endif %} {% endcomment %}
                                 </div>
                             </div>
                         </td>
@@ -287,9 +287,9 @@
                             <div class="text-sm text-gray-900 dark:text-white">
                                 {{ customer_data.display_phone }}
                             </div>
-                            {% if customer.email %}
+                            {% comment %} {% if customer.email %}
                             <div class="text-sm text-gray-500 dark:text-gray-400 truncate">{{ customer.email }}</div>
-                            {% endif %}
+                            {% endif %} {% endcomment %}
                         </td>
                         
                         
@@ -390,13 +390,32 @@
                     </a>
                     {% endif %}
                     
+                    <!-- 첫 페이지 -->
+                    {% if page_obj.number > 3 %}
+                    <a href="?{{ request.GET.urlencode }}&page=1" class="relative inline-flex items-center px-4 py-2 text-sm font-semibold text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 dark:text-gray-200 dark:ring-gray-700 dark:hover:bg-white/5">1</a>
+                    {% if page_obj.number > 4 %}
+                    <span class="relative inline-flex items-center px-4 py-2 text-sm font-semibold text-gray-700 ring-1 ring-inset ring-gray-300 dark:text-gray-300 dark:ring-gray-700">...</span>
+                    {% endif %}
+                    {% endif %}
+                    
+                    <!-- 현재 페이지 주변 페이지들 (최대 5개) -->
                     {% for page_num in paginator.page_range %}
-                        {% if page_num == page_obj.number %}
-                        <span aria-current="page" class="relative z-10 inline-flex items-center bg-indigo-600 px-4 py-2 text-sm font-semibold text-white focus:z-20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 dark:bg-indigo-500 dark:focus-visible:outline-indigo-500">{{ page_num }}</span>
-                        {% else %}
-                        <a href="?{{ request.GET.urlencode }}&page={{ page_num }}" class="relative inline-flex items-center px-4 py-2 text-sm font-semibold text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 dark:text-gray-200 dark:ring-gray-700 dark:hover:bg-white/5">{{ page_num }}</a>
+                        {% if page_num >= page_obj.number|add:'-2' and page_num <= page_obj.number|add:'2' %}
+                            {% if page_num == page_obj.number %}
+                            <span aria-current="page" class="relative z-10 inline-flex items-center bg-indigo-600 px-4 py-2 text-sm font-semibold text-white focus:z-20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 dark:bg-indigo-500 dark:focus-visible:outline-indigo-500">{{ page_num }}</span>
+                            {% else %}
+                            <a href="?{{ request.GET.urlencode }}&page={{ page_num }}" class="relative inline-flex items-center px-4 py-2 text-sm font-semibold text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 dark:text-gray-200 dark:ring-gray-700 dark:hover:bg-white/5">{{ page_num }}</a>
+                            {% endif %}
                         {% endif %}
                     {% endfor %}
+                    
+                    <!-- 마지막 페이지 -->
+                    {% if page_obj.number < paginator.num_pages|add:'-2' %}
+                    {% if page_obj.number < paginator.num_pages|add:'-3' %}
+                    <span class="relative inline-flex items-center px-4 py-2 text-sm font-semibold text-gray-700 ring-1 ring-inset ring-gray-300 dark:text-gray-300 dark:ring-gray-700">...</span>
+                    {% endif %}
+                    <a href="?{{ request.GET.urlencode }}&page={{ paginator.num_pages }}" class="relative inline-flex items-center px-4 py-2 text-sm font-semibold text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 dark:text-gray-200 dark:ring-gray-700 dark:hover:bg-white/5">{{ paginator.num_pages }}</a>
+                    {% endif %}
                     
                     {% if page_obj.has_next %}
                     <a href="?{{ request.GET.urlencode }}&page={{ page_obj.next_page_number }}" class="relative inline-flex items-center rounded-r-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 dark:ring-gray-700 dark:hover:bg-white/5">

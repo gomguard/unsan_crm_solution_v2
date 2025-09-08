@@ -426,11 +426,15 @@ def happycall_assign(request):
             Q(service_type__name__icontains='inspection') |
             Q(service_detail__icontains='검사') |
             Q(description__icontains='검사'),
-            created_at__date__range=[date_from, date_to]
+            service_date__date__range=[date_from, date_to]
         ).values_list('customer_id', flat=True)
         customers_query = customers_query.filter(id__in=inspection_customer_ids)
     
-    customers = customers_query.distinct()
+    # 최근 서비스 날짜 기준으로 정렬 (annotation 사용)
+    from django.db.models import Max
+    customers = customers_query.annotate(
+        latest_service_date=Max('servicerequest__service_date')
+    ).order_by('-latest_service_date', '-id').distinct()
     
     # 페이지네이션 적용
     paginator = Paginator(customers, 50)  # 50명씩
@@ -448,12 +452,12 @@ def happycall_assign(request):
         latest_inspection = ServiceRequest.objects.filter(
             customer=customer,
             service_type__name__icontains='검사'
-        ).select_related('service_type').order_by('-created_at').first()
+        ).select_related('service_type').order_by('-service_date').first()
         
         # 최근 서비스일
         latest_service = ServiceRequest.objects.filter(
             customer=customer
-        ).select_related('service_type').order_by('-created_at').first()
+        ).select_related('service_type').order_by('-service_date').first()
         
         # 최근 해피콜일
         latest_happycall = customer.happy_calls.order_by('-created_at').first()
@@ -461,8 +465,8 @@ def happycall_assign(request):
         customer_data.append({
             'customer': customer,
             'vehicle_numbers': vehicle_numbers,
-            'latest_inspection_date': latest_inspection.created_at.date() if latest_inspection else None,
-            'latest_service_date': latest_service.created_at.date() if latest_service else None,
+            'latest_inspection_date': latest_inspection.service_date.date() if latest_inspection and latest_inspection.service_date else None,
+            'latest_service_date': latest_service.service_date.date() if latest_service and latest_service.service_date else None,
             'latest_service_type': latest_service.service_type.name if latest_service else None,
             'latest_happycall_date': latest_happycall.created_at.date() if latest_happycall else None,
         })
@@ -515,7 +519,7 @@ def handle_assign_request(request):
             customer = Customer.objects.get(id=customer_id)
             
             # 해당 고객의 최근 서비스 요청 찾기
-            latest_service = ServiceRequest.objects.filter(customer=customer).order_by('-created_at').first()
+            latest_service = ServiceRequest.objects.filter(customer=customer).order_by('-service_date').first()
             
             if not latest_service:
                 continue  # 서비스 요청이 없는 고객은 건너뛰기

@@ -178,6 +178,11 @@ $RECYCLE.BIN/
 *.sqlite
 *.sqlite3
 
+# Data files (not in version control)
+data/
+*.csv
+*.xlsx
+
 # Log files
 *.log
 

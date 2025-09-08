@@ -152,14 +152,32 @@ def data_upload(request):
                 # 파일 처리
                 df = form.process_file()
                 
-                # 업로드 핸들러로 데이터 처리
+                # progress_key 받아오기 (POST 데이터 또는 새로 생성)
+                progress_key = request.POST.get('progress_key')
+                if not progress_key:
+                    import uuid
+                    progress_key = str(uuid.uuid4())
+                
                 handler = DataUploadHandler(
                     upload_type=form.cleaned_data['upload_type'],
                     duplicate_handling=form.cleaned_data['duplicate_handling'],
-                    user=request.user
+                    user=request.user,
+                    progress_key=progress_key
                 )
                 
                 results = handler.process_data(df)
+                
+                # 최종 진행률 완료 표시
+                handler.update_progress(100, '업로드 완료!')
+                
+                # AJAX 요청인 경우 JSON 응답
+                if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                    from django.http import JsonResponse
+                    return JsonResponse({
+                        'success': True,
+                        'progress_key': progress_key,
+                        'results': results
+                    })
                 
                 # 결과 메시지
                 success_msg = f"성공: {results['success']}건"
@@ -181,6 +199,13 @@ def data_upload(request):
                 return redirect('core:data_upload')
                 
             except Exception as e:
+                # AJAX 요청인 경우 JSON 오류 응답
+                if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                    from django.http import JsonResponse
+                    return JsonResponse({
+                        'success': False,
+                        'error': str(e)
+                    })
                 messages.error(request, f'파일 처리 중 오류가 발생했습니다: {str(e)}')
     else:
         form = DataUploadForm()
@@ -220,7 +245,7 @@ def download_template(request, template_type):
     # 템플릿별 헤더 정의
     templates = {
         'customers': {
-            'filename': '고객데이터_업로드_템플릿.xlsx',
+            'filename': 'customer_data_upload_template.xlsx',
             'sheet_name': '고객 데이터',
             'headers': [
                 'name', 'phone', 'email', 'address_main', 'address_detail',
@@ -234,19 +259,19 @@ def download_template(request, template_type):
             ]
         },
         'vehicles': {
-            'filename': '차량데이터_업로드_템플릿.xlsx',
+            'filename': 'vehicle_data_upload_template.xlsx',
             'sheet_name': '차량 데이터',
             'headers': [
-                'vehicle_number', 'model', 'year', 'color', 'mileage',
+                'vehicle_number', 'model', 'year', 'model_detail', 'mileage',
                 'customer_phone', 'vehicle_type', 'fuel_type', 'notes'
             ],
             'sample_data': [
-                ['123가4567', '소나타', '2020', '검정', '50000',
+                ['123가4567', '소나타', '2020', '하이브리드', '50000',
                  '010-1234-5678', 'sedan', 'gasoline', '샘플 차량 데이터']
             ]
         },
         'services': {
-            'filename': '서비스데이터_업로드_템플릿.xlsx',
+            'filename': 'service_data_upload_template.xlsx',
             'sheet_name': '서비스 데이터',
             'headers': [
                 'customer_phone', 'vehicle_number', 'service_type', 'service_date',
@@ -298,9 +323,69 @@ def download_template(request, template_type):
     response = HttpResponse(
         content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
     )
-    response['Content-Disposition'] = f'attachment; filename="{template["filename"]}"'
+    from urllib.parse import quote
+    filename = template["filename"]
+    response['Content-Disposition'] = f'attachment; filename="{filename}"; filename*=UTF-8\'\'{quote(filename)}'
     
     # 워크북을 응답에 저장
     wb.save(response)
     
     return response
+
+@login_required
+def upload_progress(request, progress_key):
+    """업로드 진행 상황 조회 API"""
+    if not request.user.is_superuser:
+        return JsonResponse({'error': '권한이 없습니다.'}, status=403)
+    
+    from django.http import JsonResponse
+    from django.core.cache import cache
+    
+    progress_data = cache.get(f'upload_progress_{progress_key}')
+    
+    if progress_data:
+        return JsonResponse(progress_data)
+    else:
+        return JsonResponse({
+            'percent': 0,
+            'message': '진행 상황을 찾을 수 없습니다.',
+            'results': {
+                'success': 0,
+                'updated': 0,
+                'skipped': 0,
+                'errors': 0,
+                'error_details': []
+            }
+        })
+
+@login_required
+def start_upload(request):
+    """업로드 시작 - progress_key 생성"""
+    if not request.user.is_superuser:
+        return JsonResponse({'error': '권한이 없습니다.'}, status=403)
+    
+    from django.http import JsonResponse
+    import uuid
+    
+    # progress_key 생성
+    progress_key = str(uuid.uuid4())
+    
+    # 초기 진행 상태 설정
+    from django.core.cache import cache
+    progress_data = {
+        'percent': 0,
+        'message': '업로드 준비 중...',
+        'results': {
+            'success': 0,
+            'updated': 0,
+            'skipped': 0,
+            'errors': 0,
+            'error_details': []
+        }
+    }
+    cache.set(f'upload_progress_{progress_key}', progress_data, timeout=300)
+    
+    return JsonResponse({
+        'success': True,
+        'progress_key': progress_key
+    })

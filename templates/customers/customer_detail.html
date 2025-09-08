@@ -307,6 +307,12 @@
                                     <!-- 서비스 내용 -->
                                     <div class="mb-3">
                                         <div class="text-base font-semibold text-gray-900 dark:text-white mb-2">
+                                            <!-- 서비스 타입 표시 -->
+                                            {% if service.service_type %}
+                                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-800 dark:text-blue-200 mr-2">
+                                                    {{ service.service_type.name }}
+                                                </span>
+                                            {% endif %}
                                             {{ service.service_detail }}
                                         </div>
                                     </div>

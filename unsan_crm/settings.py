@@ -167,6 +167,20 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # Tailwind settings
 TAILWIND_APP_NAME = 'theme'
 
+# 대용량 업로드를 위한 설정
+DATA_UPLOAD_MAX_MEMORY_SIZE = 52428800  # 50MB
+FILE_UPLOAD_MAX_MEMORY_SIZE = 52428800  # 50MB
+DATA_UPLOAD_MAX_NUMBER_FIELDS = 10000
+
+# 캐시 설정 (진행률 저장용)
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'LOCATION': 'unique-snowflake',
+        'TIMEOUT': 600,  # 10분
+    }
+}
+
 INTERNAL_IPS = [
     "127.0.0.1",
 ]
