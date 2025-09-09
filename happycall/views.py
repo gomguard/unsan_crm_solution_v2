@@ -5,6 +5,8 @@ from django.db.models import Q, Max, Prefetch
 from django.utils import timezone
 from django.core.paginator import Paginator
 from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from django.utils.decorators import method_decorator
 from datetime import datetime, timedelta
 from customers.models import Customer, CustomerVehicle
 from services.models import ServiceRequest
@@ -430,6 +432,42 @@ def happycall_assign(request):
         ).values_list('customer_id', flat=True)
         customers_query = customers_query.filter(id__in=inspection_customer_ids)
     
+    # 배정 상태에 따른 필터링
+    show_assigned = request.GET.get('show_assigned', 'false') == 'true'
+    
+    if show_assigned:
+        # 배정된 고객: 진행 중인 해피콜이 있는 고객
+        assigned_customer_ids = HappyCall.objects.filter(
+            # 완료되지 않은 상태들
+            Q(call_stage__endswith='_pending') |
+            Q(call_stage__endswith='_pending_approval') |
+            Q(call_stage__endswith='_in_progress') |
+            Q(call_stage__endswith='_failed')
+        ).exclude(
+            # 완전 완료된 상태들 제외
+            Q(call_stage__endswith='_completed') |
+            Q(call_stage='rejected') |
+            Q(call_stage='skip')
+        ).values_list('service_request__customer_id', flat=True).distinct()
+        
+        customers_query = customers_query.filter(id__in=assigned_customer_ids)
+    else:
+        # 미배정 고객: 진행 중인 해피콜이 없는 고객
+        assigned_customer_ids = HappyCall.objects.filter(
+            # 완료되지 않은 상태들
+            Q(call_stage__endswith='_pending') |
+            Q(call_stage__endswith='_pending_approval') |
+            Q(call_stage__endswith='_in_progress') |
+            Q(call_stage__endswith='_failed')
+        ).exclude(
+            # 완전 완료된 상태들 제외
+            Q(call_stage__endswith='_completed') |
+            Q(call_stage='rejected') |
+            Q(call_stage='skip')
+        ).values_list('service_request__customer_id', flat=True).distinct()
+        
+        customers_query = customers_query.exclude(id__in=assigned_customer_ids)
+
     # 최근 서비스 날짜 기준으로 정렬 (annotation 사용)
     from django.db.models import Max
     customers = customers_query.annotate(
@@ -441,11 +479,59 @@ def happycall_assign(request):
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
     
+    # 로깅 설정 (먼저 정의)
+    import logging
+    logger = logging.getLogger(__name__)
+    
     # 고객별 상세 정보 구성
     customer_data = []
     for customer in page_obj:
-        # 차량 정보
+        # 차량 정보 및 필터 매칭 차량 식별
         vehicles = [ov.vehicle for ov in customer.vehicle_ownerships.filter(end_date__isnull=True)]
+        vehicle_info = []
+        matching_vehicle_numbers = []
+        
+        for vehicle in vehicles:
+            vehicle_number = vehicle.vehicle_number
+            
+            # 이 특정 차량이 필터 조건에 맞는 검사를 받았는지 확인
+            is_matching = False
+            if date_from and date_to:
+                # 해당 특정 차량의 검사 기록 확인
+                vehicle_inspections = ServiceRequest.objects.filter(
+                    customer=customer,
+                    vehicle=vehicle,  # 특정 차량으로 제한
+                    service_type__name__icontains='검사',
+                    service_date__date__range=[date_from, date_to]
+                )
+                
+                # 디버깅용 로깅
+                logger.info(f"Customer: {customer.name}, Vehicle: {vehicle_number}")
+                logger.info(f"Date range: {date_from} ~ {date_to}")
+                logger.info(f"Vehicle inspections found: {vehicle_inspections.count()}")
+                for inspection in vehicle_inspections:
+                    logger.info(f"  - Service: {inspection.service_type.name}, Date: {inspection.service_date.date()}")
+                
+                if vehicle_inspections.exists():
+                    is_matching = True
+                    matching_vehicle_numbers.append(vehicle_number)
+                    logger.info(f"  -> MATCHING: {vehicle_number}")
+                    
+                    # 해당 차량의 가장 최근 검사일 가져오기
+                    latest_vehicle_inspection = vehicle_inspections.order_by('-service_date').first()
+                    vehicle_inspection_date = latest_vehicle_inspection.service_date.date()
+                else:
+                    logger.info(f"  -> NOT MATCHING: {vehicle_number}")
+                    vehicle_inspection_date = None
+            else:
+                vehicle_inspection_date = None
+            
+            vehicle_info.append({
+                'number': vehicle_number,
+                'is_matching': is_matching,
+                'inspection_date': vehicle_inspection_date  # 검사일 추가
+            })
+        
         vehicle_numbers = [v.vehicle_number for v in vehicles]
         
         # 최근 검사일 
@@ -459,20 +545,79 @@ def happycall_assign(request):
             customer=customer
         ).select_related('service_type').order_by('-service_date').first()
         
-        # 최근 해피콜일
-        latest_happycall = customer.happy_calls.order_by('-created_at').first()
+        # 최근 해피콜일 (happycall 앱의 HappyCall 사용)
+        latest_happycall = HappyCall.objects.filter(
+            service_request__customer=customer
+        ).order_by('-created_at').first()
+        
+        # 배정된 고객인 경우 진행중인 해피콜 정보 추가 (happycall 앱의 HappyCall 사용)
+        assigned_happycall = None
+        if show_assigned:
+            assigned_happycall = HappyCall.objects.filter(
+                Q(service_request__customer=customer) &
+                (Q(call_stage__endswith='_pending') |
+                Q(call_stage__endswith='_pending_approval') |
+                Q(call_stage__endswith='_in_progress') |
+                Q(call_stage__endswith='_failed'))
+            ).exclude(
+                Q(call_stage__endswith='_completed') |
+                Q(call_stage='rejected') |
+                Q(call_stage='skip')
+            ).select_related(
+                'first_call_caller', 'second_call_caller', 
+                'third_call_caller', 'fourth_call_caller'
+            ).first()
         
         customer_data.append({
             'customer': customer,
             'vehicle_numbers': vehicle_numbers,
+            'vehicle_info': vehicle_info,  # 차량별 매칭 정보
+            'matching_vehicle_numbers': matching_vehicle_numbers,  # 조건에 맞는 차량번호들
             'latest_inspection_date': latest_inspection.service_date.date() if latest_inspection and latest_inspection.service_date else None,
             'latest_service_date': latest_service.service_date.date() if latest_service and latest_service.service_date else None,
             'latest_service_type': latest_service.service_type.name if latest_service else None,
             'latest_happycall_date': latest_happycall.created_at.date() if latest_happycall else None,
+            'assigned_happycall': assigned_happycall,  # 배정된 해피콜 정보 추가
         })
     
     # 활성 직원 목록
     employees = Employee.objects.filter(status='active').select_related('user')
+    
+    # 현재 필터 조건 설명 생성 (실제 적용된 날짜 기준)
+    filter_description = ""
+    
+    # 로깅으로 디버깅 정보 추가
+    logger.info(f"Filter debug - filter_type: {filter_type}, start_date: {start_date}, end_date: {end_date}")
+    logger.info(f"Calculated date_from: {date_from}, date_to: {date_to}")
+    
+    if filter_type == 'inspected_today':
+        filter_description = f"오늘({today.strftime('%Y년 %m월 %d일')}) 검사 받은 고객"
+    elif filter_type == 'inspected_1week':
+        desc_date = today - timedelta(days=7)
+        filter_description = f"{desc_date.strftime('%Y년 %m월 %d일')} 전후 (±2일) 검사 받은 고객"
+    elif filter_type == 'inspected_3month':
+        desc_date = today - timedelta(days=90)
+        filter_description = f"{desc_date.strftime('%Y년 %m월 %d일')} 전후 (±2일) 검사 받은 고객"
+    elif filter_type == 'inspected_6month':
+        desc_date = today - timedelta(days=180)
+        filter_description = f"{desc_date.strftime('%Y년 %m월 %d일')} 전후 (±2일) 검사 받은 고객"
+    elif filter_type == 'inspected_12month':
+        desc_date = today - timedelta(days=365)
+        filter_description = f"{desc_date.strftime('%Y년 %m월 %d일')} 전후 (±2일) 검사 받은 고객"
+    elif filter_type == 'custom' and date_from and date_to:
+        filter_description = f"{date_from.strftime('%Y년 %m월 %d일')} ~ {date_to.strftime('%Y년 %m월 %d일')} 기간 검사 받은 고객"
+    elif filter_type == 'no_inspection':
+        filter_description = "검사 기록이 없는 고객"
+    else:
+        # 실제 적용된 날짜가 있으면 그것을 표시
+        if date_from and date_to:
+            filter_description = f"{date_from.strftime('%Y년 %m월 %d일')} ~ {date_to.strftime('%Y년 %m월 %d일')} 기간 검사 받은 고객"
+        else:
+            filter_description = "모든 고객"
+    
+    # 검색 조건 추가
+    if search:
+        filter_description += f" ('{search}' 검색)"
     
     context = {
         'customer_data': customer_data,
@@ -484,6 +629,10 @@ def happycall_assign(request):
         'today': today,
         'page_obj': page_obj,
         'paginator': paginator,
+        'show_assigned': show_assigned,  # 배정 상태 표시용
+        'filter_description': filter_description,  # 필터 조건 설명
+        'date_from': date_from,  # 실제 날짜 범위
+        'date_to': date_to,
     }
     
     return render(request, 'happycall/happycall_assign.html', context)
@@ -498,19 +647,32 @@ def handle_assign_request(request):
     assignee_id = request.POST.get('assignee')
     call_stage = request.POST.get('call_stage', '1st_pending')
     
+    # 필터 조건 보존을 위한 파라미터 수집
+    filter_params = {}
+    if request.GET.get('filter_type'):
+        filter_params['filter_type'] = request.GET.get('filter_type')
+    if request.GET.get('start_date'):
+        filter_params['start_date'] = request.GET.get('start_date')
+    if request.GET.get('end_date'):
+        filter_params['end_date'] = request.GET.get('end_date')
+    if request.GET.get('search'):
+        filter_params['search'] = request.GET.get('search')
+    if request.GET.get('show_assigned'):
+        filter_params['show_assigned'] = request.GET.get('show_assigned')
+    
     if not selected_customers:
         messages.error(request, '선택된 고객이 없습니다.')
-        return redirect('happycall:assign')
+        return redirect('happycall:assign', **filter_params) if filter_params else redirect('happycall:assign')
     
     if not assignee_id:
         messages.error(request, '담당자를 선택해주세요.')
-        return redirect('happycall:assign')
+        return redirect('happycall:assign', **filter_params) if filter_params else redirect('happycall:assign')
     
     try:
         assignee = Employee.objects.get(id=assignee_id, status='active')
     except Employee.DoesNotExist:
         messages.error(request, '유효하지 않은 담당자입니다.')
-        return redirect('happycall:assign')
+        return redirect('happycall:assign', **filter_params) if filter_params else redirect('happycall:assign')
     
     # 대량 생성
     created_count = 0
@@ -545,7 +707,14 @@ def handle_assign_request(request):
             continue
     
     messages.success(request, f'{created_count}건의 해피콜이 생성되었습니다.')
-    return redirect('happycall:assign')
+    
+    # 필터 조건을 유지하면서 리다이렉트
+    if filter_params:
+        from urllib.parse import urlencode
+        redirect_url = f"/happycall/assign/?{urlencode(filter_params)}"
+        return redirect(redirect_url)
+    else:
+        return redirect('happycall:assign')
 
 
 @login_required
@@ -562,10 +731,23 @@ def happycall_detail(request, pk):
     # 매출 기록 조회
     revenue_records = HappyCallRevenue.objects.filter(happy_call=happycall)
     
+    # 고객의 서비스 이력 조회
+    customer = happycall.service_request.customer
+    service_history = ServiceRequest.objects.filter(
+        customer=customer
+    ).select_related(
+        'service_type', 'vehicle'
+    ).order_by('-service_date')[:10]  # 최근 10건
+    
+    # 고객의 차량 정보
+    customer_vehicles = [ov.vehicle for ov in customer.vehicle_ownerships.filter(end_date__isnull=True)]
+    
     context = {
         'happycall': happycall,
         'result': result,
         'revenue_records': revenue_records,
+        'service_history': service_history,
+        'customer_vehicles': customer_vehicles,
         'title': '해피콜 상세보기'
     }
     return render(request, 'happycall/happycall_detail.html', context)
@@ -694,3 +876,137 @@ def happycall_unified_call(request, pk):
         'title': '통합 해피콜 수행'
     }
     return render(request, 'happycall/unified_call_perform.html', context)
+
+
+@login_required
+def cancel_assignment(request, pk):
+    """해피콜 배정 해제"""
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'message': '잘못된 요청입니다.'})
+    
+    try:
+        happycall = get_object_or_404(HappyCall, pk=pk)
+        
+        # 권한 체크 (관리자 또는 담당자만)
+        current_callers = [
+            happycall.first_call_caller,
+            happycall.second_call_caller,
+            happycall.third_call_caller,
+            happycall.fourth_call_caller
+        ]
+        
+        if not (request.user.is_superuser or request.user in current_callers):
+            return JsonResponse({'success': False, 'message': '권한이 없습니다.'})
+        
+        # 진행중인 상태인지 확인
+        if happycall.call_stage.endswith('_completed') or happycall.call_stage in ['rejected', 'skip']:
+            return JsonResponse({'success': False, 'message': '이미 완료된 해피콜은 배정 해제할 수 없습니다.'})
+        
+        # 배정 해제 - 해피콜 삭제
+        customer_name = happycall.service_request.customer.name
+        happycall.delete()
+        
+        messages.success(request, f'{customer_name} 고객의 해피콜 배정이 해제되었습니다.')
+        return JsonResponse({'success': True, 'message': '배정이 해제되었습니다.'})
+        
+    except Exception as e:
+        return JsonResponse({'success': False, 'message': f'오류가 발생했습니다: {str(e)}'})
+
+
+@login_required
+def bulk_cancel_assignment(request):
+    """해피콜 일괄 배정 해제"""
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'message': '잘못된 요청입니다.'})
+    
+    import json
+    import logging
+    logger = logging.getLogger(__name__)
+    
+    try:
+        logger.info(f"Bulk cancel request from user: {request.user}")
+        logger.info(f"Request method: {request.method}")
+        logger.info(f"Content type: {request.content_type}")
+        logger.info(f"Request body: {request.body}")
+        logger.info(f"Request headers: {dict(request.headers)}")
+        
+        if not request.body:
+            return JsonResponse({'success': False, 'message': '요청 데이터가 없습니다.'})
+        
+        try:
+            data = json.loads(request.body)
+            logger.info(f"Parsed JSON data: {data}")
+        except json.JSONDecodeError as e:
+            logger.error(f"JSON decode error: {e}")
+            return JsonResponse({'success': False, 'message': f'잘못된 JSON 형식입니다: {str(e)}'})
+            
+        happycall_ids = data.get('happycall_ids', [])
+        
+        logger.info(f"Parsed happycall_ids: {happycall_ids}")
+        
+        if not happycall_ids:
+            return JsonResponse({'success': False, 'message': '선택된 해피콜이 없습니다.'})
+        
+        # 해피콜 조회 및 권한 확인
+        happycalls = HappyCall.objects.filter(id__in=happycall_ids)
+        logger.info(f"Found {happycalls.count()} happycalls to process")
+        
+        deleted_count = 0
+        error_messages = []
+        
+        for happycall in happycalls:
+            try:
+                customer_name = happycall.service_request.customer.name
+                logger.info(f"Processing happycall for {customer_name} (ID: {happycall.id}, Stage: {happycall.call_stage})")
+                
+                # 권한 체크 (관리자 또는 담당자만)
+                current_callers = [
+                    happycall.first_call_caller,
+                    happycall.second_call_caller,
+                    happycall.third_call_caller,
+                    happycall.fourth_call_caller
+                ]
+                
+                logger.info(f"Current user: {request.user}, Is superuser: {request.user.is_superuser}")
+                logger.info(f"Current callers: {[str(caller) for caller in current_callers if caller]}")
+                
+                if not (request.user.is_superuser or request.user in current_callers):
+                    error_msg = f'{customer_name}: 권한이 없습니다.'
+                    error_messages.append(error_msg)
+                    logger.warning(error_msg)
+                    continue
+                
+                # 진행중인 상태인지 확인
+                if happycall.call_stage.endswith('_completed') or happycall.call_stage in ['rejected', 'skip']:
+                    error_msg = f'{customer_name}: 이미 완료된 해피콜입니다.'
+                    error_messages.append(error_msg)
+                    logger.warning(error_msg)
+                    continue
+                
+                # 해피콜 삭제
+                logger.info(f"Deleting happycall ID: {happycall.id} for {customer_name}")
+                happycall.delete()
+                deleted_count += 1
+                logger.info(f"Successfully deleted happycall for {customer_name}")
+                
+            except Exception as e:
+                error_msg = f'{customer_name}: {str(e)}'
+                error_messages.append(error_msg)
+                logger.error(f"Error processing happycall for {customer_name}: {e}")
+                continue
+        
+        # 결과 메시지 생성
+        result_message = f'{deleted_count}건의 배정이 해제되었습니다.'
+        if error_messages:
+            result_message += f' (오류: {len(error_messages)}건)'
+        
+        return JsonResponse({
+            'success': True, 
+            'message': result_message,
+            'deleted_count': deleted_count,
+            'error_count': len(error_messages),
+            'errors': error_messages
+        })
+        
+    except Exception as e:
+        return JsonResponse({'success': False, 'message': f'오류가 발생했습니다: {str(e)}'})

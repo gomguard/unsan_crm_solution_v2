@@ -38,6 +38,28 @@
             </div>
         </div>
 
+        <!-- 탭 섹션 -->
+        <div class="bg-white dark:bg-gray-800 shadow-sm rounded-lg mb-6">
+            <div class="border-b border-gray-200 dark:border-gray-700">
+                <nav class="-mb-px flex space-x-8 px-6" aria-label="Tabs">
+                    <a href="?{% if request.GET.filter_type %}filter_type={{ request.GET.filter_type }}&{% endif %}{% if request.GET.start_date %}start_date={{ request.GET.start_date }}&{% endif %}{% if request.GET.end_date %}end_date={{ request.GET.end_date }}&{% endif %}{% if request.GET.search %}search={{ request.GET.search }}&{% endif %}show_assigned=false"
+                       class="{% if not show_assigned %}border-indigo-500 text-indigo-600{% else %}border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300{% endif %} whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">
+                        미배정 고객
+                        {% if not show_assigned and paginator %}
+                            <span class="ml-2 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 text-xs px-2 py-1 rounded-full">{{ paginator.count }}</span>
+                        {% endif %}
+                    </a>
+                    <a href="?{% if request.GET.filter_type %}filter_type={{ request.GET.filter_type }}&{% endif %}{% if request.GET.start_date %}start_date={{ request.GET.start_date }}&{% endif %}{% if request.GET.end_date %}end_date={{ request.GET.end_date }}&{% endif %}{% if request.GET.search %}search={{ request.GET.search }}&{% endif %}show_assigned=true"
+                       class="{% if show_assigned %}border-indigo-500 text-indigo-600{% else %}border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300{% endif %} whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">
+                        배정된 고객
+                        {% if show_assigned and paginator %}
+                            <span class="ml-2 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 text-xs px-2 py-1 rounded-full">{{ paginator.count }}</span>
+                        {% endif %}
+                    </a>
+                </nav>
+            </div>
+        </div>
+
         <!-- 필터 섹션 -->
         <div class="bg-white dark:bg-gray-800 shadow-sm rounded-lg mb-6">
             <div class="p-6">
@@ -116,12 +138,39 @@
                     </div>
                     
                     <input type="hidden" name="filter_type" id="filter_type" value="{{ filter_type }}">
+                    <input type="hidden" name="show_assigned" value="{{ show_assigned|yesno:'true,false' }}">
                 </form>
             </div>
         </div>
 
-        <!-- 대량 생성 폼 -->
-        {% if customer_data %}
+        <!-- 배정된 고객 일괄 해제 폼 -->
+        {% if customer_data and show_assigned %}
+        <div class="bg-white dark:bg-gray-800 shadow-sm rounded-lg mb-6">
+            <div class="p-6">
+                {% csrf_token %}
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
+                        일괄 배정 해제
+                        <span class="text-sm font-normal text-gray-500 ml-2" id="selectedCancelCount">(0명 선택)</span>
+                    </h3>
+                    <div class="flex space-x-3">
+                        <button type="button" onclick="selectAllCancel()" class="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700">
+                            전체 선택
+                        </button>
+                        <button type="button" onclick="deselectAllCancel()" class="px-3 py-1 bg-gray-600 text-white text-sm rounded hover:bg-gray-700">
+                            전체 해제
+                        </button>
+                        <button type="button" onclick="bulkCancelAssignment()" class="px-4 py-1 bg-red-600 text-white text-sm rounded hover:bg-red-700" id="bulkCancelBtn" disabled>
+                            선택한 배정 해제
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- 대량 생성 폼 (미배정 고객에서만 표시) -->
+        {% if customer_data and not show_assigned %}
         <form method="post" id="bulkCreateForm">
             {% csrf_token %}
             
@@ -172,19 +221,47 @@
                     </div>
                 </div>
             </div>
+        {% endif %}
+
+        {% if customer_data %}
+        <!-- 미배정 고객용 form 시작 -->
+        {% if not show_assigned %}
+        <form method="post" id="bulkCreateForm">
+            {% csrf_token %}
+        {% endif %}
 
             <!-- 고객 카드 목록 -->
             <div class="bg-white dark:bg-gray-800 shadow-sm rounded-lg">
                 <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
                     <div class="flex items-center justify-between">
-                        <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
-                            고객 목록 
-                            {% if paginator %}
-                            <span class="text-sm font-normal text-gray-500 dark:text-gray-400">
-                                (총 {{ paginator.count }}명 중 {{ page_obj.start_index }}-{{ page_obj.end_index }}명)
-                            </span>
+                        <div>
+                            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
+                                {% if show_assigned %}배정된 고객{% else %}미배정 고객{% endif %} 목록 
+                                {% if paginator %}
+                                <span class="text-sm font-normal text-gray-500 dark:text-gray-400">
+                                    (총 {{ paginator.count }}명 중 {{ page_obj.start_index }}-{{ page_obj.end_index }}명)
+                                </span>
+                                {% endif %}
+                            </h3>
+                            <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                                현재 조건: {{ filter_description }}
+                            </p>
+                            <!-- 차량 색상 범례 -->
+                            {% if date_from and date_to %}
+                            <div class="flex items-center space-x-4 mt-2 text-xs">
+                                <span class="text-gray-500">차량 표시:</span>
+                                <div class="flex items-center space-x-1">
+                                    <div class="inline-block bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 px-2 py-1 rounded border border-green-400">
+                                        <div class="font-medium">필터 조건 해당</div>
+                                        <div class="text-xs opacity-80">검사일 표시</div>
+                                    </div>
+                                </div>
+                                <div class="flex items-center space-x-1">
+                                    <span class="inline-block bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 px-2 py-1 rounded">기타 차량</span>
+                                </div>
+                            </div>
                             {% endif %}
-                        </h3>
+                        </div>
                         <div class="text-sm text-gray-500 dark:text-gray-400">
                             페이지 {{ page_obj.number }} / {{ paginator.num_pages }}
                         </div>
@@ -194,14 +271,37 @@
                 <div class="p-6">
                     <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
                         {% for data in customer_data %}
-                        <div class="customer-card bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg p-4 cursor-pointer" onclick="toggleCustomer({{ data.customer.id }})">
+                        <div class="customer-card bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg p-4 {% if not show_assigned %}cursor-pointer{% endif %}" {% if not show_assigned %}onclick="toggleCustomer({{ data.customer.id }})"{% elif show_assigned %}onclick="toggleCancelCustomer({{ data.assigned_happycall.id }})"{% endif %}>
                             <div class="flex items-start justify-between mb-3">
                                 <div class="flex items-center">
+                                    {% if not show_assigned %}
                                     <input type="checkbox" name="selected_customers" value="{{ data.customer.id }}" class="customer-checkbox h-4 w-4 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500 mr-3">
+                                    {% elif show_assigned and data.assigned_happycall %}
+                                    <input type="checkbox" name="selected_happycalls" value="{{ data.assigned_happycall.id }}" class="happycall-checkbox h-4 w-4 text-red-600 rounded border-gray-300 focus:ring-red-500 mr-3">
+                                    {% endif %}
                                     <div>
                                         <h4 class="text-sm font-semibold text-gray-900 dark:text-white">{{ data.customer.name }}</h4>
+                                        {% if show_assigned and data.assigned_happycall %}
+                                        <div class="mt-1">
+                                            <span class="inline-block px-2 py-1 text-xs rounded-full {% if data.assigned_happycall.call_stage == '1st_pending' %}bg-blue-100 text-blue-800{% elif data.assigned_happycall.call_stage == '2nd_pending' %}bg-green-100 text-green-800{% elif data.assigned_happycall.call_stage == '3rd_pending' %}bg-yellow-100 text-yellow-800{% elif data.assigned_happycall.call_stage == '4th_pending' %}bg-purple-100 text-purple-800{% else %}bg-gray-100 text-gray-800{% endif %}">
+                                                {{ data.assigned_happycall.get_call_stage_display }}
+                                            </span>
+                                        </div>
+                                        {% endif %}
                                     </div>
                                 </div>
+                                {% if show_assigned and data.assigned_happycall %}
+                                <div class="flex space-x-1">
+                                    <a href="{% url 'happycall:detail' data.assigned_happycall.id %}" 
+                                       class="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded hover:bg-blue-200 transition-colors">
+                                        상세보기
+                                    </a>
+                                    <a href="{% url 'happycall:execute' data.assigned_happycall.id %}" 
+                                       class="px-2 py-1 bg-green-100 text-green-800 text-xs rounded hover:bg-green-200 transition-colors">
+                                        수행하기
+                                    </a>
+                                </div>
+                                {% endif %}
                             </div>
                             
                             <div class="space-y-2 text-xs">
@@ -209,7 +309,20 @@
                                 <div class="flex justify-between">
                                     <span class="text-gray-500 dark:text-gray-400">차량번호:</span>
                                     <span class="text-gray-900 dark:text-white font-medium">
-                                        {% if data.vehicle_numbers %}
+                                        {% if data.vehicle_info %}
+                                            {% for vehicle in data.vehicle_info %}
+                                                {% if vehicle.is_matching %}
+                                                    <div class="inline-block bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 px-2 py-1 rounded text-xs mr-1 mb-1 border-2 border-green-400">
+                                                        <div class="font-medium">{{ vehicle.number }}</div>
+                                                        {% if vehicle.inspection_date %}
+                                                            <div class="text-xs opacity-80">{{ vehicle.inspection_date|date:"Y.m.d" }}</div>
+                                                        {% endif %}
+                                                    </div>
+                                                {% else %}
+                                                    <span class="inline-block bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 px-2 py-1 rounded text-xs mr-1 mb-1">{{ vehicle.number }}</span>
+                                                {% endif %}
+                                            {% endfor %}
+                                        {% elif data.vehicle_numbers %}
                                             {% for vehicle_number in data.vehicle_numbers %}
                                                 <span class="inline-block bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-2 py-1 rounded text-xs mr-1">{{ vehicle_number }}</span>
                                             {% endfor %}
@@ -257,6 +370,34 @@
                                         {% endif %}
                                     </span>
                                 </div>
+                                
+                                <!-- 배정된 고객의 경우 담당자 정보 표시 -->
+                                {% if show_assigned and data.assigned_happycall %}
+                                <div class="mt-3 pt-2 border-t border-gray-200 dark:border-gray-600">
+                                    <div class="flex justify-between items-center mb-2">
+                                        <span class="text-gray-500 dark:text-gray-400 font-medium">담당자:</span>
+                                        <span class="text-gray-900 dark:text-white font-medium">
+                                            {% if data.assigned_happycall.call_stage|slice:":3" == "1st" and data.assigned_happycall.first_call_caller %}
+                                                {{ data.assigned_happycall.first_call_caller.get_full_name|default:data.assigned_happycall.first_call_caller.username }}
+                                            {% elif data.assigned_happycall.call_stage|slice:":3" == "2nd" and data.assigned_happycall.second_call_caller %}
+                                                {{ data.assigned_happycall.second_call_caller.get_full_name|default:data.assigned_happycall.second_call_caller.username }}
+                                            {% elif data.assigned_happycall.call_stage|slice:":3" == "3rd" and data.assigned_happycall.third_call_caller %}
+                                                {{ data.assigned_happycall.third_call_caller.get_full_name|default:data.assigned_happycall.third_call_caller.username }}
+                                            {% elif data.assigned_happycall.call_stage|slice:":3" == "4th" and data.assigned_happycall.fourth_call_caller %}
+                                                {{ data.assigned_happycall.fourth_call_caller.get_full_name|default:data.assigned_happycall.fourth_call_caller.username }}
+                                            {% else %}
+                                                <span class="text-red-500">미지정</span>
+                                            {% endif %}
+                                        </span>
+                                    </div>
+                                    <div class="flex justify-between items-center">
+                                        <span class="text-gray-500 dark:text-gray-400">생성일:</span>
+                                        <span class="text-gray-900 dark:text-white">
+                                            {{ data.assigned_happycall.created_at|date:"Y.m.d H:i" }}
+                                        </span>
+                                    </div>
+                                </div>
+                                {% endif %}
                             </div>
                         </div>
                         {% endfor %}
@@ -269,13 +410,13 @@
                     <div class="flex items-center justify-between">
                         <div class="flex justify-between flex-1 sm:hidden">
                             {% if page_obj.has_previous %}
-                            <a href="?{% if request.GET.filter_type %}filter_type={{ request.GET.filter_type }}&{% endif %}{% if request.GET.start_date %}start_date={{ request.GET.start_date }}&{% endif %}{% if request.GET.end_date %}end_date={{ request.GET.end_date }}&{% endif %}{% if request.GET.search %}search={{ request.GET.search }}&{% endif %}page={{ page_obj.previous_page_number }}" 
+                            <a href="?{% if request.GET.filter_type %}filter_type={{ request.GET.filter_type }}&{% endif %}{% if request.GET.start_date %}start_date={{ request.GET.start_date }}&{% endif %}{% if request.GET.end_date %}end_date={{ request.GET.end_date }}&{% endif %}{% if request.GET.search %}search={{ request.GET.search }}&{% endif %}{% if show_assigned %}show_assigned=true&{% endif %}page={{ page_obj.previous_page_number }}" 
                                class="relative inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-md text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700">
                                 이전
                             </a>
                             {% endif %}
                             {% if page_obj.has_next %}
-                            <a href="?{% if request.GET.filter_type %}filter_type={{ request.GET.filter_type }}&{% endif %}{% if request.GET.start_date %}start_date={{ request.GET.start_date }}&{% endif %}{% if request.GET.end_date %}end_date={{ request.GET.end_date }}&{% endif %}{% if request.GET.search %}search={{ request.GET.search }}&{% endif %}page={{ page_obj.next_page_number }}" 
+                            <a href="?{% if request.GET.filter_type %}filter_type={{ request.GET.filter_type }}&{% endif %}{% if request.GET.start_date %}start_date={{ request.GET.start_date }}&{% endif %}{% if request.GET.end_date %}end_date={{ request.GET.end_date }}&{% endif %}{% if request.GET.search %}search={{ request.GET.search }}&{% endif %}{% if show_assigned %}show_assigned=true&{% endif %}page={{ page_obj.next_page_number }}" 
                                class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-md text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700">
                                 다음
                             </a>
@@ -295,7 +436,7 @@
                             <div>
                                 <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
                                     {% if page_obj.has_previous %}
-                                    <a href="?{% if request.GET.filter_type %}filter_type={{ request.GET.filter_type }}&{% endif %}{% if request.GET.start_date %}start_date={{ request.GET.start_date }}&{% endif %}{% if request.GET.end_date %}end_date={{ request.GET.end_date }}&{% endif %}{% if request.GET.search %}search={{ request.GET.search }}&{% endif %}page={{ page_obj.previous_page_number }}" 
+                                    <a href="?{% if request.GET.filter_type %}filter_type={{ request.GET.filter_type }}&{% endif %}{% if request.GET.start_date %}start_date={{ request.GET.start_date }}&{% endif %}{% if request.GET.end_date %}end_date={{ request.GET.end_date }}&{% endif %}{% if request.GET.search %}search={{ request.GET.search }}&{% endif %}{% if show_assigned %}show_assigned=true&{% endif %}page={{ page_obj.previous_page_number }}" 
                                        class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm font-medium text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700">
                                         이전
                                     </a>
@@ -307,7 +448,7 @@
                                         {{ num }}
                                     </span>
                                     {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
-                                    <a href="?{% if request.GET.filter_type %}filter_type={{ request.GET.filter_type }}&{% endif %}{% if request.GET.start_date %}start_date={{ request.GET.start_date }}&{% endif %}{% if request.GET.end_date %}end_date={{ request.GET.end_date }}&{% endif %}{% if request.GET.search %}search={{ request.GET.search }}&{% endif %}page={{ num }}" 
+                                    <a href="?{% if request.GET.filter_type %}filter_type={{ request.GET.filter_type }}&{% endif %}{% if request.GET.start_date %}start_date={{ request.GET.start_date }}&{% endif %}{% if request.GET.end_date %}end_date={{ request.GET.end_date }}&{% endif %}{% if request.GET.search %}search={{ request.GET.search }}&{% endif %}{% if show_assigned %}show_assigned=true&{% endif %}page={{ num }}" 
                                        class="relative inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">
                                         {{ num }}
                                     </a>
@@ -315,7 +456,7 @@
                                     {% endfor %}
                                     
                                     {% if page_obj.has_next %}
-                                    <a href="?{% if request.GET.filter_type %}filter_type={{ request.GET.filter_type }}&{% endif %}{% if request.GET.start_date %}start_date={{ request.GET.start_date }}&{% endif %}{% if request.GET.end_date %}end_date={{ request.GET.end_date }}&{% endif %}{% if request.GET.search %}search={{ request.GET.search }}&{% endif %}page={{ page_obj.next_page_number }}" 
+                                    <a href="?{% if request.GET.filter_type %}filter_type={{ request.GET.filter_type }}&{% endif %}{% if request.GET.start_date %}start_date={{ request.GET.start_date }}&{% endif %}{% if request.GET.end_date %}end_date={{ request.GET.end_date }}&{% endif %}{% if request.GET.search %}search={{ request.GET.search }}&{% endif %}{% if show_assigned %}show_assigned=true&{% endif %}page={{ page_obj.next_page_number }}" 
                                        class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm font-medium text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700">
                                         다음
                                     </a>
@@ -327,7 +468,11 @@
                 </div>
                 {% endif %}
             </div>
+
+        <!-- 미배정 고객용 form 종료 -->
+        {% if not show_assigned %}
         </form>
+        {% endif %}
         {% else %}
         <!-- 빈 상태 -->
         <div class="bg-white dark:bg-gray-800 shadow-sm rounded-lg">
@@ -342,6 +487,37 @@
             </div>
         </div>
         {% endif %}
+    </div>
+</div>
+
+<!-- 배정 해제 확인 모달 -->
+<div id="cancelModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden" style="z-index: 1000;">
+    <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white dark:bg-gray-800">
+        <div class="mt-3 text-center">
+            <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 dark:bg-red-900">
+                <svg class="h-6 w-6 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"/>
+                </svg>
+            </div>
+            <h3 class="text-lg leading-6 font-medium text-gray-900 dark:text-white mt-2">배정 해제 확인</h3>
+            <div class="mt-2 px-7 py-3">
+                <p class="text-sm text-gray-500 dark:text-gray-400" id="cancelConfirmText">
+                    정말로 이 해피콜 배정을 해제하시겠습니까?
+                </p>
+            </div>
+            <div class="items-center px-4 py-3">
+                <div class="flex justify-center space-x-3">
+                    <button id="cancelConfirmBtn" 
+                            class="px-4 py-2 bg-red-500 text-white text-base font-medium rounded-md shadow-sm hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-300">
+                        해제하기
+                    </button>
+                    <button id="cancelCancelBtn" 
+                            class="px-4 py-2 bg-gray-300 text-gray-800 text-base font-medium rounded-md shadow-sm hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-300">
+                        취소
+                    </button>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -441,11 +617,211 @@ function updateSelectedCount() {
     document.getElementById('createBtn').disabled = count === 0;
 }
 
+// 배정 해제 관련 함수들 (일괄 해제)
+function toggleCancelCustomer(happycallId) {
+    const checkbox = document.querySelector(`input[value="${happycallId}"]`);
+    const card = checkbox.closest('.customer-card');
+    
+    checkbox.checked = !checkbox.checked;
+    
+    if (checkbox.checked) {
+        card.classList.add('selected');
+    } else {
+        card.classList.remove('selected');
+    }
+    
+    updateSelectedCancelCount();
+}
+
+function selectAllCancel() {
+    const checkboxes = document.querySelectorAll('input[name="selected_happycalls"]');
+    const cards = document.querySelectorAll('.customer-card');
+    
+    checkboxes.forEach((checkbox, index) => {
+        checkbox.checked = true;
+        if (cards[index]) {
+            cards[index].classList.add('selected');
+        }
+    });
+    
+    updateSelectedCancelCount();
+}
+
+function deselectAllCancel() {
+    const checkboxes = document.querySelectorAll('input[name="selected_happycalls"]');
+    const cards = document.querySelectorAll('.customer-card');
+    
+    checkboxes.forEach((checkbox, index) => {
+        checkbox.checked = false;
+        if (cards[index]) {
+            cards[index].classList.remove('selected');
+        }
+    });
+    
+    updateSelectedCancelCount();
+}
+
+function updateSelectedCancelCount() {
+    const selectedCheckboxes = document.querySelectorAll('input[name="selected_happycalls"]:checked');
+    const count = selectedCheckboxes.length;
+    
+    const countElement = document.getElementById('selectedCancelCount');
+    const bulkCancelBtn = document.getElementById('bulkCancelBtn');
+    
+    if (countElement) {
+        countElement.textContent = `(${count}명 선택)`;
+    }
+    if (bulkCancelBtn) {
+        bulkCancelBtn.disabled = count === 0;
+    }
+}
+
+function bulkCancelAssignment() {
+    const selectedCheckboxes = document.querySelectorAll('input[name="selected_happycalls"]:checked');
+    const happycallIds = Array.from(selectedCheckboxes).map(cb => parseInt(cb.value));
+    
+    if (happycallIds.length === 0) {
+        alert('선택된 해피콜이 없습니다.');
+        return;
+    }
+    
+    if (!confirm(`${happycallIds.length}건의 해피콜 배정을 해제하시겠습니까?\n해제 후에는 다시 미배정 상태가 됩니다.`)) {
+        return;
+    }
+    
+    const bulkCancelBtn = document.getElementById('bulkCancelBtn');
+    bulkCancelBtn.disabled = true;
+    bulkCancelBtn.textContent = '처리중...';
+    
+    // CSRF 토큰 가져오기 - 더 정확한 방법
+    let token = '';
+    
+    // 먼저 form 내부의 CSRF 토큰 찾기
+    const assignedSection = document.getElementById('assigned-customers');
+    if (assignedSection) {
+        const csrfInput = assignedSection.querySelector('input[name=csrfmiddlewaretoken]');
+        if (csrfInput) {
+            token = csrfInput.value;
+        }
+    }
+    
+    // 없으면 전체 페이지에서 찾기
+    if (!token) {
+        const csrfTokenInput = document.querySelector('[name=csrfmiddlewaretoken]');
+        if (csrfTokenInput) {
+            token = csrfTokenInput.value;
+        }
+    }
+    
+    // 여전히 없으면 쿠키에서 가져오기
+    if (!token) {
+        const cookieValue = document.cookie
+            .split('; ')
+            .find(row => row.startsWith('csrftoken='))
+            ?.split('=')[1];
+        if (cookieValue) {
+            token = cookieValue;
+        }
+    }
+    
+    console.log('CSRF Token:', token); // 디버깅용
+    console.log('Token length:', token.length); // 디버깅용
+    console.log('Happycall IDs:', happycallIds); // 디버깅용
+    console.log('Current user:', '{{ request.user.username }}'); // 현재 로그인 사용자
+    console.log('Request URL:', '/happycall/bulk-cancel/'); // 요청 URL
+    
+    if (!token) {
+        alert('CSRF 토큰을 찾을 수 없습니다. 페이지를 새로고침해 주세요.');
+        bulkCancelBtn.disabled = false;
+        bulkCancelBtn.textContent = '선택한 배정 해제';
+        return;
+    }
+    
+    fetch('/happycall/bulk-cancel/', {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': token,
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        credentials: 'same-origin',
+        body: JSON.stringify({
+            happycall_ids: happycallIds
+        })
+    })
+    .then(response => {
+        console.log('Response status:', response.status); // 디버깅용
+        console.log('Response ok:', response.ok); // 디버깅용
+        console.log('Response status text:', response.statusText); // 디버깅용
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status} - ${response.statusText}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        console.log('Response data:', data); // 디버깅용
+        console.log('Success:', data.success); // 디버깅용
+        console.log('Message:', data.message); // 디버깅용
+        console.log('Deleted count:', data.deleted_count); // 디버깅용
+        console.log('Error count:', data.error_count); // 디버깅용
+        
+        if (data.success) {
+            let message = data.message;
+            if (data.errors && data.errors.length > 0) {
+                message += '\n\n오류 목록:\n' + data.errors.join('\n');
+                console.log('Errors:', data.errors); // 오류 상세 로깅
+            }
+            alert(message);
+            
+            // 성공한 경우에만 새로고침
+            if (data.deleted_count > 0) {
+                console.log('Reloading page due to successful deletions');
+                window.location.reload();
+            } else {
+                console.log('No items were deleted, not reloading');
+                bulkCancelBtn.disabled = false;
+                bulkCancelBtn.textContent = '선택한 배정 해제';
+            }
+        } else {
+            alert('오류: ' + data.message);
+            bulkCancelBtn.disabled = false;
+            bulkCancelBtn.textContent = '선택한 배정 해제';
+        }
+    })
+    .catch(error => {
+        console.error('Fetch error:', error); // 디버깅용
+        console.error('Error stack:', error.stack); // 디버깅용
+        
+        let errorMessage = '네트워크 오류가 발생했습니다.';
+        if (error.message.includes('Failed to fetch')) {
+            errorMessage += ' 서버에 연결할 수 없습니다. 네트워크 연결을 확인해 주세요.';
+        } else if (error.message.includes('CSRF')) {
+            errorMessage += ' CSRF 인증 오류입니다. 페이지를 새로고침해 주세요.';
+        } else {
+            errorMessage += ` 상세 오류: ${error.message}`;
+        }
+        
+        alert(errorMessage);
+        bulkCancelBtn.disabled = false;
+        bulkCancelBtn.textContent = '선택한 배정 해제';
+    });
+}
+
+// 기존 개별 해제 함수들 (사용하지 않지만 호환성을 위해 남겨둠)
+function closeCancelModal() {
+    const modal = document.getElementById('cancelModal');
+    if (modal) {
+        modal.classList.add('hidden');
+    }
+}
+
 // 페이지 로드시 선택된 항목 상태 업데이트
 document.addEventListener('DOMContentLoaded', function() {
     updateSelectedCount();
+    updateSelectedCancelCount();
     
-    // 체크박스 클릭 이벤트
+    // 미배정 고객 체크박스 클릭 이벤트
     document.querySelectorAll('input[name="selected_customers"]').forEach(checkbox => {
         checkbox.addEventListener('change', function() {
             const card = this.closest('.customer-card');
@@ -455,6 +831,19 @@ document.addEventListener('DOMContentLoaded', function() {
                 card.classList.remove('selected');
             }
             updateSelectedCount();
+        });
+    });
+    
+    // 배정된 고객 체크박스 클릭 이벤트
+    document.querySelectorAll('input[name="selected_happycalls"]').forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+            const card = this.closest('.customer-card');
+            if (this.checked) {
+                card.classList.add('selected');
+            } else {
+                card.classList.remove('selected');
+            }
+            updateSelectedCancelCount();
         });
     });
 });

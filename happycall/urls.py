@@ -16,4 +16,6 @@ urlpatterns = [
     path('<int:pk>/callback/', views.happycall_create_callback, name='create_callback'),  # 재연락 생성
     path('<int:pk>/revenue/', views.happycall_revenue_create, name='revenue_create'),  # 매출 등록
     path('<int:pk>/unified-call/', views.happycall_unified_call, name='unified_call'),  # 통합 해피콜 수행
+    path('<int:pk>/cancel/', views.cancel_assignment, name='cancel_assignment'),  # 배정 해제
+    path('bulk-cancel/', views.bulk_cancel_assignment, name='bulk_cancel_assignment'),  # 일괄 배정 해제
 ]
