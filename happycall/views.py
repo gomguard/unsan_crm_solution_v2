@@ -719,45 +719,10 @@ def handle_assign_request(request):
 
 @login_required
 def happycall_detail(request, pk):
-    """해피콜 상세보기"""
+    """해피콜 상세보기 (수행/수정 기능 통합)"""
     happycall = get_object_or_404(HappyCall, pk=pk)
     
-    # 해피콜 결과가 있는지 확인 (완료된 경우)
-    result = None
-    if (happycall.call_stage.endswith('_completed') and 
-        (happycall.overall_satisfaction or happycall.customer_feedback)):
-        result = happycall  # happycall 자체를 result로 사용
-    
-    # 매출 기록 조회
-    revenue_records = HappyCallRevenue.objects.filter(happy_call=happycall)
-    
-    # 고객의 서비스 이력 조회
-    customer = happycall.service_request.customer
-    service_history = ServiceRequest.objects.filter(
-        customer=customer
-    ).select_related(
-        'service_type', 'vehicle'
-    ).order_by('-service_date')[:10]  # 최근 10건
-    
-    # 고객의 차량 정보
-    customer_vehicles = [ov.vehicle for ov in customer.vehicle_ownerships.filter(end_date__isnull=True)]
-    
-    context = {
-        'happycall': happycall,
-        'result': result,
-        'revenue_records': revenue_records,
-        'service_history': service_history,
-        'customer_vehicles': customer_vehicles,
-        'title': '해피콜 상세보기'
-    }
-    return render(request, 'happycall/happycall_detail.html', context)
-
-
-@login_required
-def happycall_execute(request, pk):
-    """해피콜 수행"""
-    happycall = get_object_or_404(HappyCall, pk=pk)
-    
+    # POST 요청 처리 (해피콜 수행/수정)
     if request.method == 'POST':
         # 해피콜 수행 처리
         contact_result = request.POST.get('contact_result')
@@ -803,7 +768,6 @@ def happycall_execute(request, pk):
                 happycall.third_call_date = timezone.now()
                 happycall.third_call_caller = request.user
                 happycall.third_call_notes = notes
-                
         else:
             # 통화 실패 처리
             if happycall.call_stage.startswith('1st'):
@@ -823,11 +787,44 @@ def happycall_execute(request, pk):
         messages.success(request, '해피콜이 완료되었습니다.')
         return redirect('happycall:detail', pk=pk)
     
+    # GET 요청 처리
+    # 해피콜 결과가 있는지 확인 (완료된 경우)
+    result = None
+    if (happycall.call_stage.endswith('_completed') and 
+        (happycall.overall_satisfaction or happycall.customer_feedback)):
+        result = happycall  # happycall 자체를 result로 사용
+    
+    # 매출 기록 조회
+    revenue_records = HappyCallRevenue.objects.filter(happy_call=happycall)
+    
+    # 고객의 서비스 이력 조회
+    customer = happycall.service_request.customer
+    service_history = ServiceRequest.objects.filter(
+        customer=customer
+    ).select_related(
+        'service_type', 'vehicle'
+    ).order_by('-service_date')[:10]  # 최근 10건
+    
+    # 고객의 차량 정보
+    customer_vehicles = [ov.vehicle for ov in customer.vehicle_ownerships.filter(end_date__isnull=True)]
+    
+    # 수행/수정 모드 판단
+    edit_mode = request.GET.get('edit') == 'true'
+    is_pending = (happycall.call_stage.endswith('_pending') or 
+                  happycall.call_stage.endswith('_in_progress'))
+    
     context = {
         'happycall': happycall,
-        'title': '해피콜 수행'
+        'result': result,
+        'revenue_records': revenue_records,
+        'service_history': service_history,
+        'customer_vehicles': customer_vehicles,
+        'edit_mode': edit_mode,
+        'is_pending': is_pending,
+        'title': '해피콜 상세보기'
     }
-    return render(request, 'happycall/happycall_execute.html', context)
+    return render(request, 'happycall/happycall_detail.html', context)
+
 
 
 @login_required

@@ -131,88 +131,202 @@
                 </div>
 
                 <div class="space-y-6">
-                    <!-- 통화 수행 폼 -->
+                    <!-- 수행/수정 폼 또는 결과 표시 -->
+                    {% if edit_mode or is_pending %}
+                    <!-- 해피콜 수행/수정 폼 -->
                     <div class="bg-white dark:bg-gray-800 shadow-sm rounded-lg">
                         <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-                            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">통화 내용 입력</h3>
+                            <div class="flex items-center justify-between">
+                                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
+                                    {% if edit_mode %}해피콜 수정{% else %}해피콜 수행{% endif %}
+                                </h3>
+                                {% if not is_pending %}
+                                <a href="?edit=false" class="text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300">
+                                    취소
+                                </a>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <form method="post" class="p-6 space-y-4">
+                            {% csrf_token %}
+                            
+                            <!-- 통화 결과 -->
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                                    통화 결과 <span class="text-red-500">*</span>
+                                </label>
+                                <div class="mt-1 space-y-2">
+                                    <div class="flex items-center">
+                                        <input type="radio" name="contact_result" value="connected" id="connected" required
+                                               {% if result.contact_result == 'connected' or happycall.first_call_success or happycall.second_call_success or happycall.third_call_success %}checked{% endif %}
+                                               class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 dark:border-gray-600">
+                                        <label for="connected" class="ml-3 text-sm text-gray-700 dark:text-gray-300">
+                                            연결됨 - 통화 완료
+                                        </label>
+                                    </div>
+                                    <div class="flex items-center">
+                                        <input type="radio" name="contact_result" value="no_answer" id="no_answer"
+                                               class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 dark:border-gray-600">
+                                        <label for="no_answer" class="ml-3 text-sm text-gray-700 dark:text-gray-300">
+                                            부재중 - 응답 없음
+                                        </label>
+                                    </div>
+                                    <div class="flex items-center">
+                                        <input type="radio" name="contact_result" value="refused" id="refused"
+                                               class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 dark:border-gray-600">
+                                        <label for="refused" class="ml-3 text-sm text-gray-700 dark:text-gray-300">
+                                            통화 거부
+                                        </label>
+                                    </div>
+                                    <div class="flex items-center">
+                                        <input type="radio" name="contact_result" value="number_changed" id="number_changed"
+                                               class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 dark:border-gray-600">
+                                        <label for="number_changed" class="ml-3 text-sm text-gray-700 dark:text-gray-300">
+                                            번호 변경
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- 만족도 점수 (통화 연결시만) -->
+                            <div id="satisfaction-section">
+                                <label for="satisfaction_score" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                                    만족도 점수 (1-5점)
+                                </label>
+                                <select name="satisfaction_score" id="satisfaction_score"
+                                        class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                                    <option value="">선택하세요</option>
+                                    <option value="1" {% if happycall.overall_satisfaction == 1 %}selected{% endif %}>1점 - 매우 불만족</option>
+                                    <option value="2" {% if happycall.overall_satisfaction == 2 %}selected{% endif %}>2점 - 불만족</option>
+                                    <option value="3" {% if happycall.overall_satisfaction == 3 %}selected{% endif %}>3점 - 보통</option>
+                                    <option value="4" {% if happycall.overall_satisfaction == 4 %}selected{% endif %}>4점 - 만족</option>
+                                    <option value="5" {% if happycall.overall_satisfaction == 5 %}selected{% endif %}>5점 - 매우 만족</option>
+                                </select>
+                            </div>
+
+                            <!-- 고객 피드백 -->
+                            <div id="feedback-section">
+                                <label for="feedback" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                                    고객 피드백
+                                </label>
+                                <textarea name="feedback" id="feedback" rows="4"
+                                          placeholder="고객이 전달한 피드백을 입력하세요..."
+                                          class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500">{{ happycall.customer_feedback }}</textarea>
+                            </div>
+
+                            <!-- 후속 조치 -->
+                            <div id="followup-section">
+                                <div class="space-y-4">
+                                    <div class="flex items-center">
+                                        <input type="checkbox" name="follow_up_needed" id="follow_up_needed" 
+                                               {% if happycall.follow_up_needed %}checked{% endif %}
+                                               class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 dark:border-gray-600 rounded">
+                                        <label for="follow_up_needed" class="ml-3 text-sm text-gray-700 dark:text-gray-300">
+                                            후속 조치 필요
+                                        </label>
+                                    </div>
+                                    
+                                    <div class="flex items-center">
+                                        <input type="checkbox" name="additional_service_interest" id="additional_service_interest"
+                                               {% if happycall.additional_service_interest %}checked{% endif %}
+                                               class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 dark:border-gray-600 rounded">
+                                        <label for="additional_service_interest" class="ml-3 text-sm text-gray-700 dark:text-gray-300">
+                                            추가 서비스 관심 있음
+                                        </label>
+                                    </div>
+                                    
+                                    <div class="flex items-center">
+                                        <input type="checkbox" name="no_call_request" id="no_call_request"
+                                               {% if happycall.no_call_request %}checked{% endif %}
+                                               class="h-4 w-4 text-red-600 focus:ring-red-500 border-gray-300 dark:border-gray-600 rounded">
+                                        <label for="no_call_request" class="ml-3 text-sm text-red-700 dark:text-red-400">
+                                            통화 금지 요청 (향후 해피콜 거부)
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- 관심 서비스 유형 (추가 서비스 관심 시만 표시) -->
+                            <div id="service-type-section" style="{% if not happycall.additional_service_interest %}display: none;{% endif %}">
+                                <label for="interested_service_types" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                                    관심 서비스 유형
+                                </label>
+                                <textarea name="interested_service_notes" id="interested_service_notes" rows="2"
+                                          placeholder="고객이 관심있어하는 서비스나 후속조치 내용을 기록하세요 (예: 엔진오일 교환, 타이어 교체, 정기점검 등)"
+                                          class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500">{{ happycall.interested_service_notes|default:'' }}</textarea>
+                                <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">나중에 실제 서비스 요청 시 해피콜과 연결됩니다.</p>
+                            </div>
+
+                            <!-- 메모 -->
+                            <div>
+                                <label for="notes" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                                    메모
+                                </label>
+                                <textarea name="notes" id="notes" rows="3"
+                                          placeholder="기타 특이사항이나 메모를 입력하세요..."
+                                          class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500">{% if happycall.first_call_notes %}{{ happycall.first_call_notes }}{% elif happycall.second_call_notes %}{{ happycall.second_call_notes }}{% elif happycall.third_call_notes %}{{ happycall.third_call_notes }}{% endif %}</textarea>
+                            </div>
+
+                            <!-- 버튼들 -->
+                            <div class="flex justify-end space-x-3 pt-6 border-t border-gray-200 dark:border-gray-700">
+                                <a href="{% if edit_mode %}?edit=false{% else %}{% url 'happycall:list' %}{% endif %}" 
+                                   class="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 text-sm font-medium rounded-md hover:bg-gray-50 dark:hover:bg-gray-700">
+                                    취소
+                                </a>
+                                <button type="submit" 
+                                        class="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-md hover:bg-indigo-700">
+                                    {% if edit_mode %}수정 완료{% else %}해피콜 완료{% endif %}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                    {% else %}
+                    <!-- 해피콜 결과 표시 -->
+                    <div class="bg-white dark:bg-gray-800 shadow-sm rounded-lg">
+                        <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+                            <div class="flex items-center justify-between">
+                                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">해피콜 결과</h3>
+                                <a href="?edit=true" class="px-3 py-1 bg-gray-100 text-gray-700 text-sm rounded-md hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600">
+                                    수정
+                                </a>
+                            </div>
                         </div>
                         <div class="p-6">
-                            <form method="post" action="{% url 'happycall:execute' happycall.pk %}" class="space-y-6">
-                                {% csrf_token %}
+                            {% if result %}
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                {% if result.overall_satisfaction %}
+                                <div>
+                                    <span class="text-sm font-medium text-gray-500 dark:text-gray-400">만족도:</span>
+                                    <div class="mt-1">
+                                        <span class="text-sm text-gray-900 dark:text-white">{{ result.overall_satisfaction }}점</span>
+                                        <div class="flex mt-1">
+                                            {% for i in "12345" %}
+                                            <span class="h-4 w-4 {% if result.overall_satisfaction >= i|add:0 %}text-yellow-400{% else %}text-gray-300 dark:text-gray-600{% endif %}">★</span>
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endif %}
                                 
-                                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    <!-- 통화 결과 -->
-                                    <div>
-                                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">통화 결과</label>
-                                        <select name="contact_result" required class="block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
-                                            <option value="">선택해주세요</option>
-                                            <option value="success" {% if happycall.first_call_success or happycall.second_call_success or happycall.third_call_success or happycall.fourth_call_success %}selected{% endif %}>통화 성공</option>
-                                            <option value="no_answer">부재중</option>
-                                            <option value="busy">통화중</option>
-                                            <option value="refused">통화 거부</option>
-                                            <option value="wrong_number">잘못된 번호</option>
-                                        </select>
-                                    </div>
-
-                                    <!-- 만족도 -->
-                                    <div>
-                                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">서비스 만족도</label>
-                                        <select name="overall_satisfaction" class="block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
-                                            <option value="">선택해주세요</option>
-                                            <option value="5" {% if happycall.overall_satisfaction == 5 %}selected{% endif %}>매우 만족 (5점)</option>
-                                            <option value="4" {% if happycall.overall_satisfaction == 4 %}selected{% endif %}>만족 (4점)</option>
-                                            <option value="3" {% if happycall.overall_satisfaction == 3 %}selected{% endif %}>보통 (3점)</option>
-                                            <option value="2" {% if happycall.overall_satisfaction == 2 %}selected{% endif %}>불만족 (2점)</option>
-                                            <option value="1" {% if happycall.overall_satisfaction == 1 %}selected{% endif %}>매우 불만족 (1점)</option>
-                                        </select>
-                                    </div>
-                                </div>
-
-                                <!-- 통화 메모 -->
                                 <div>
-                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">통화 내용</label>
-                                    <textarea name="call_notes" rows="4" 
-                                              class="block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                                              placeholder="통화 내용을 입력해주세요...">{{ happycall.first_call_notes|default:happycall.second_call_notes|default:happycall.third_call_notes|default:happycall.fourth_call_notes }}</textarea>
+                                    <span class="text-sm font-medium text-gray-500 dark:text-gray-400">통화 상태:</span>
+                                    <span class="ml-2 text-sm text-gray-900 dark:text-white">완료됨</span>
                                 </div>
-
-                                <!-- 고객 피드백 -->
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">고객 의견</label>
-                                    <textarea name="customer_feedback" rows="3"
-                                              class="block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                                              placeholder="고객이 말씀하신 의견이나 건의사항을 입력해주세요...">{{ happycall.customer_feedback }}</textarea>
-                                </div>
-
-                                <!-- 체크박스 옵션들 -->
-                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div class="flex items-center">
-                                        <input type="checkbox" name="additional_service_interest" value="true" 
-                                               {% if happycall.additional_service_interest %}checked{% endif %}
-                                               class="h-4 w-4 text-indigo-600 border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded focus:ring-indigo-500">
-                                        <label class="ml-2 text-sm text-gray-700 dark:text-gray-300">추가 서비스에 관심 있음</label>
-                                    </div>
-
-                                    <div class="flex items-center">
-                                        <input type="checkbox" name="callback_needed" value="true"
-                                               class="h-4 w-4 text-indigo-600 border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded focus:ring-indigo-500">
-                                        <label class="ml-2 text-sm text-gray-700 dark:text-gray-300">다시 연락 필요</label>
-                                    </div>
-                                </div>
-
-                                <div class="flex justify-end space-x-3 pt-4">
-                                    <button type="button" onclick="history.back()" 
-                                            class="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 text-sm font-medium rounded-md hover:bg-gray-50 dark:hover:bg-gray-700">
-                                        취소
-                                    </button>
-                                    <button type="submit" 
-                                            class="px-6 py-2 bg-indigo-600 text-white text-sm font-medium rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                                        통화 내용 저장
-                                    </button>
-                                </div>
-                            </form>
+                            </div>
+                            
+                            {% if result.customer_feedback %}
+                            <div class="mt-4">
+                                <span class="text-sm font-medium text-gray-500 dark:text-gray-400">고객 피드백:</span>
+                                <p class="mt-1 text-sm text-gray-900 dark:text-white">{{ result.customer_feedback }}</p>
+                            </div>
+                            {% endif %}
+                            {% else %}
+                            <p class="text-gray-500 dark:text-gray-400">아직 해피콜이 수행되지 않았습니다.</p>
+                            {% endif %}
                         </div>
                     </div>
+                    {% endif %}
 
                     <!-- 기존 통화 기록 (있는 경우) -->
                     {% if result %}
@@ -261,4 +375,65 @@
         </main>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const contactResultInputs = document.querySelectorAll('input[name="contact_result"]');
+    const satisfactionSection = document.getElementById('satisfaction-section');
+    const feedbackSection = document.getElementById('feedback-section');
+    const followupSection = document.getElementById('followup-section');
+    const satisfactionScore = document.getElementById('satisfaction_score');
+    
+    function updateFormSections() {
+        const selectedResult = document.querySelector('input[name="contact_result"]:checked');
+        if (!selectedResult) return;
+        
+        const result = selectedResult.value;
+        
+        if (result === 'connected') {
+            // 통화 연결시 - 모든 섹션 활성화
+            satisfactionSection.style.display = 'block';
+            feedbackSection.style.display = 'block';
+            followupSection.style.display = 'block';
+            satisfactionScore.required = true;
+        } else {
+            // 통화 실패시 - 만족도/피드백 숨김
+            satisfactionSection.style.display = 'none';
+            feedbackSection.style.display = 'none';
+            followupSection.style.display = 'none';
+            satisfactionScore.required = false;
+        }
+    }
+    
+    // 이벤트 리스너 등록
+    contactResultInputs.forEach(input => {
+        input.addEventListener('change', updateFormSections);
+    });
+    
+    // 초기 설정
+    updateFormSections();
+    
+    // 추가 서비스 관심 체크박스와 서비스 유형 섹션 연동
+    const additionalServiceCheckbox = document.getElementById('additional_service_interest');
+    const serviceTypeSection = document.getElementById('service-type-section');
+    const serviceNotesInput = document.getElementById('interested_service_notes');
+    
+    if (additionalServiceCheckbox) {
+        additionalServiceCheckbox.addEventListener('change', function() {
+            if (this.checked) {
+                serviceTypeSection.style.display = 'block';
+                serviceNotesInput.focus();
+            } else {
+                serviceTypeSection.style.display = 'none';
+                serviceNotesInput.value = '';
+            }
+        });
+        
+        // 페이지 로드 시 초기 상태 설정
+        if (additionalServiceCheckbox.checked) {
+            serviceTypeSection.style.display = 'block';
+        }
+    }
+});
+</script>
 {% endblock %}

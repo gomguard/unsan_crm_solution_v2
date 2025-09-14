@@ -4,80 +4,88 @@
 {% block title %}{{ title }}{% endblock %}
 
 {% block content %}
-<div class="min-h-screen bg-gray-50 dark:bg-gray-900 py-8">
-    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        <!-- 헤더 -->
-        <div class="mb-8">
-            <div class="flex items-center justify-between">
+<div class="flex h-screen bg-gray-50 dark:bg-gray-900">
+    <!-- 고객 정보 사이드바 -->
+    <aside class="hidden lg:flex lg:flex-shrink-0 lg:w-80 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700">
+        <div class="flex flex-col h-full w-full overflow-y-auto">
+            <!-- 헤더 -->
+            <div class="p-6 border-b border-gray-200 dark:border-gray-700">
+                <h2 class="text-lg font-semibold text-gray-900 dark:text-white">고객 정보</h2>
+                <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">
+                    {{ happycall.service_request.customer.name }} 고객님
+                </p>
+            </div>
+
+            <!-- 고객 정보 -->
+            <div class="p-6 space-y-6">
                 <div>
-                    <h1 class="text-3xl font-bold text-gray-900 dark:text-white">{{ title }}</h1>
-                    <p class="mt-2 text-gray-600 dark:text-gray-400">
-                        {{ happycall.service_request.customer.name }} 고객님 - {{ happycall.service_request.customer.get_masked_phone }}
-                    </p>
+                    <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">고객명</dt>
+                    <dd class="mt-1 text-sm text-gray-900 dark:text-white">{{ happycall.service_request.customer.name }}</dd>
                 </div>
-                <div class="flex space-x-3">
-                    <a href="{% url 'happycall:detail' happycall.pk %}" 
-                       class="px-4 py-2 bg-gray-600 text-white text-sm font-medium rounded-md hover:bg-gray-700">
-                        상세보기
-                    </a>
+                <div>
+                    <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">전화번호</dt>
+                    <dd class="mt-1 text-sm text-gray-900 dark:text-white">
+                        {% if user.is_superuser %}
+                            <a href="tel:{{ happycall.service_request.customer.phone }}" class="text-indigo-600 hover:text-indigo-500">
+                                {{ happycall.service_request.customer.phone }}
+                            </a>
+                            <span class="ml-2 text-xs text-green-600">[통화가능]</span>
+                        {% else %}
+                            {{ happycall.service_request.customer.get_masked_phone }}
+                            <span class="ml-2 text-xs text-gray-500">[권한필요]</span>
+                        {% endif %}
+                    </dd>
                 </div>
-            </div>
-        </div>
-
-        <!-- 고객 정보 요약 -->
-        <div class="bg-white dark:bg-gray-800 shadow-sm rounded-lg mb-6">
-            <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">고객 정보</h3>
-            </div>
-            <div class="p-6">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">고객명</dt>
-                        <dd class="mt-1 text-sm text-gray-900 dark:text-white">{{ happycall.service_request.customer.name }}</dd>
-                    </div>
-                    <div>
-                        <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">전화번호</dt>
-                        <dd class="mt-1 text-sm text-gray-900 dark:text-white">
-                            {% if user.is_superuser %}
-                                <a href="tel:{{ happycall.service_request.customer.phone }}" class="text-indigo-600 hover:text-indigo-500">
-                                    {{ happycall.service_request.customer.phone }}
-                                </a>
-                                <span class="ml-2 text-xs text-green-600">[통화가능]</span>
-                            {% else %}
-                                {{ happycall.service_request.customer.get_masked_phone }}
-                                <span class="ml-2 text-xs text-gray-500">[권한필요]</span>
-                            {% endif %}
-                        </dd>
-                    </div>
-                    <div>
-                        <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">차량</dt>
-                        <dd class="mt-1 text-sm text-gray-900 dark:text-white">
-                            {% if happycall.service_request.vehicle %}
-                                {{ happycall.service_request.vehicle.make }} {{ happycall.service_request.vehicle.model }} 
-                                ({{ happycall.service_request.vehicle.license_plate }})
-                            {% else %}
-                                -
-                            {% endif %}
-                        </dd>
-                    </div>
-                    <div>
-                        <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">서비스 일자</dt>
-                        <dd class="mt-1 text-sm text-gray-900 dark:text-white">
-                            {{ happycall.service_request.created_at|date:"Y년 m월 d일" }}
-                            <div class="text-xs text-gray-500 dark:text-gray-400">
-                                {{ happycall.service_request.service_type.name }}
-                            </div>
-                        </dd>
-                    </div>
+                <div>
+                    <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">차량</dt>
+                    <dd class="mt-1 text-sm text-gray-900 dark:text-white">
+                        {% if happycall.service_request.vehicle %}
+                            {{ happycall.service_request.vehicle.make }} {{ happycall.service_request.vehicle.model }} 
+                            <br><span class="text-xs text-gray-500">({{ happycall.service_request.vehicle.license_plate }})</span>
+                        {% else %}
+                            -
+                        {% endif %}
+                    </dd>
+                </div>
+                <div>
+                    <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">서비스 일자</dt>
+                    <dd class="mt-1 text-sm text-gray-900 dark:text-white">
+                        {{ happycall.service_request.created_at|date:"Y년 m월 d일" }}
+                        <div class="text-xs text-gray-500 dark:text-gray-400">
+                            {{ happycall.service_request.service_type.name }}
+                        </div>
+                    </dd>
                 </div>
             </div>
         </div>
+    </aside>
 
-        <!-- 해피콜 수행 폼 -->
-        <div class="bg-white dark:bg-gray-800 shadow-sm rounded-lg">
-            <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">{{ title }} 결과 입력</h3>
+    <!-- 메인 콘텐츠 -->
+    <main class="flex-1 overflow-y-auto">
+        <div class="p-6">
+            <!-- 헤더 -->
+            <div class="mb-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h1 class="text-2xl font-bold text-gray-900 dark:text-white">{{ title }}</h1>
+                        <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">
+                            {{ happycall.service_request.customer.name }} 고객님
+                        </p>
+                    </div>
+                    <div class="flex space-x-3">
+                        <a href="{% url 'happycall:detail' happycall.pk %}" 
+                           class="px-4 py-2 bg-gray-600 text-white text-sm font-medium rounded-md hover:bg-gray-700">
+                            상세보기
+                        </a>
+                    </div>
+                </div>
             </div>
+
+            <!-- 해피콜 수행 폼 -->
+            <div class="bg-white dark:bg-gray-800 shadow-sm rounded-lg">
+                <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white">{{ title }} 결과 입력</h3>
+                </div>
             
             <form method="post" class="p-6 space-y-6">
                 {% csrf_token %}
@@ -214,8 +222,9 @@
                     </button>
                 </div>
             </form>
+            </div>
         </div>
-    </div>
+    </main>
 </div>
 
 <script>

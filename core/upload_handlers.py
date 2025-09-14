@@ -437,11 +437,17 @@ class DataUploadHandler:
                     except Vehicle.DoesNotExist:
                         raise ValueError(f"차량을 찾을 수 없습니다: {vehicle_number}")
                     
-                    # 서비스 타입 찾기
+                    # 서비스 타입 찾기 (ID 또는 이름으로)
+                    service_type = None
                     try:
-                        service_type = ServiceType.objects.get(name=service_type_name)
+                        # 숫자인 경우 ID로 검색
+                        if service_type_name.isdigit():
+                            service_type = ServiceType.objects.get(id=int(service_type_name))
+                        else:
+                            # 문자열인 경우 이름으로 검색
+                            service_type = ServiceType.objects.get(name=service_type_name)
                     except ServiceType.DoesNotExist:
-                        raise ValueError(f"서비스 타입을 찾을 수 없습니다: {service_type_name}")
+                        raise ValueError(f"서비스 타입을 찾을 수 없습니다: {service_type_name} (ID: 1-8 또는 서비스명을 입력하세요)")
                     
                     # 서비스 날짜 파싱 (날짜 또는 날짜+시간 모두 지원)
                     service_date_str = str(row['service_date'])

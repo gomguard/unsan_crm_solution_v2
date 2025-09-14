@@ -16,7 +16,7 @@
                         <p class="mt-1 text-sm font-medium text-gray-700 dark:text-gray-300">{{ service.service_detail }}</p>
                         {% endif %}
                         <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                            서비스 요청 #{{ service.id }} · {{ service.created_at|date:"Y년 m월 d일 H:i" }} 접수 · 입력자: {{ service.created_by.get_full_name|default:service.created_by.username }}
+                            서비스 요청 #{{ service.id }} · {{ service.service_date|date:"Y.m.d H:i" }} · 입력자: {{ service.created_by.get_full_name|default:service.created_by.username }}
                         </p>
                     </div>
                     <div class="flex items-center space-x-3">
@@ -181,14 +181,17 @@
                                 {{ service.get_priority_display }}
                             </span>
                         </div>
-                        <div class="flex justify-between">
-                            <span class="text-sm text-gray-500 dark:text-gray-400">접수 일시</span>
-                            <span class="text-sm text-gray-900 dark:text-white">{{ service.created_at|date:"Y.m.d H:i" }}</span>
-                        </div>
+                        
                         {% if service.requested_date %}
                         <div class="flex justify-between">
                             <span class="text-sm text-gray-500 dark:text-gray-400">희망 일시</span>
                             <span class="text-sm text-gray-900 dark:text-white">{{ service.requested_date|date:"Y.m.d H:i" }}</span>
+                        </div>
+                        {% endif %}
+                        {% if service.service_date %}
+                        <div class="flex justify-between">
+                            <span class="text-sm text-gray-500 dark:text-gray-400">서비스 실행일시</span>
+                            <span class="text-sm text-gray-900 dark:text-white">{{ service.service_date|date:"Y.m.d H:i" }}</span>
                         </div>
                         {% endif %}
                     </div>
@@ -213,6 +216,10 @@
                         <div class="flex justify-between">
                             <span class="text-sm text-gray-500 dark:text-gray-400">마지막 수정</span>
                             <span class="text-sm text-gray-900 dark:text-white">{{ service.updated_at|date:"Y.m.d H:i" }}</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-sm text-gray-500 dark:text-gray-400">접수 일시</span>
+                            <span class="text-sm text-gray-900 dark:text-white">{{ service.created_at|date:"Y.m.d H:i" }}</span>
                         </div>
                     </div>
                 </div>

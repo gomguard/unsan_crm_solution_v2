@@ -230,7 +230,7 @@
                                                     {% elif service.service_type.category == 'insurance' %}bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300
                                                     {% else %}bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300
                                                     {% endif %}">
-                                                    {{ service.service_type.get_category_display }}
+                                                    {{ service.service_type.category|default:"기타" }}
                                                 </span>
                                             </div>
                                             <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">
@@ -298,13 +298,17 @@
                                     {% endif %}
                                     <div>
                                         <span class="font-medium text-gray-900 dark:text-white">
-                                            {% if service.estimated_price %}비용:{% else %}접수일:{% endif %}
+                                            {% if service.estimated_price %}비용:{% else %}서비스일:{% endif %}
                                         </span>
                                         <p>
                                             {% if service.estimated_price %}
                                                 {{ service.estimated_price|floatformat:0|intcomma }}원
                                             {% else %}
-                                                {{ service.created_at|date:"n월 j일" }}
+                                                {% if service.service_date %}
+                                                    {{ service.service_date|date:"n월 j일" }}
+                                                {% else %}
+                                                    {{ service.created_at|date:"n월 j일" }}
+                                                {% endif %}
                                             {% endif %}
                                         </p>
                                     </div>
