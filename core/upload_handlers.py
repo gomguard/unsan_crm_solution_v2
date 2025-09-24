@@ -5,6 +5,7 @@ from datetime import datetime
 from customers.models import Customer, Vehicle, CustomerVehicle
 from services.models import ServiceType, ServiceRequest
 from django.contrib.auth import get_user_model
+from django.db import models
 import logging
 import uuid
 import pandas as pd
@@ -449,6 +450,32 @@ class DataUploadHandler:
                     except ServiceType.DoesNotExist:
                         raise ValueError(f"서비스 타입을 찾을 수 없습니다: {service_type_name} (ID: 1-8 또는 서비스명을 입력하세요)")
                     
+                    # 담당자 찾기 (ID, username, 또는 이름으로)
+                    assigned_employee = None
+                    if 'assigned_employee' in row and not pd.isna(row['assigned_employee']):
+                        assigned_employee_str = str(row['assigned_employee']).strip()
+                        if assigned_employee_str:
+                            try:
+                                # 숫자인 경우 ID로 검색
+                                if assigned_employee_str.isdigit():
+                                    assigned_employee = User.objects.get(id=int(assigned_employee_str))
+                                else:
+                                    # 문자열인 경우 username 또는 이름으로 검색
+                                    try:
+                                        assigned_employee = User.objects.get(username=assigned_employee_str)
+                                    except User.DoesNotExist:
+                                        # username으로 찾지 못하면 이름으로 검색 (first_name + last_name)
+                                        assigned_employee = User.objects.filter(
+                                            models.Q(first_name=assigned_employee_str) |
+                                            models.Q(last_name=assigned_employee_str) |
+                                            models.Q(first_name__icontains=assigned_employee_str) |
+                                            models.Q(last_name__icontains=assigned_employee_str)
+                                        ).first()
+                                        if not assigned_employee:
+                                            raise User.DoesNotExist()
+                            except User.DoesNotExist:
+                                raise ValueError(f"담당자를 찾을 수 없습니다: {assigned_employee_str} (User ID, username, 또는 이름을 입력하세요)")
+                    
                     # 서비스 날짜 파싱 (날짜 또는 날짜+시간 모두 지원)
                     service_date_str = str(row['service_date'])
                     service_datetime = None
@@ -492,6 +519,8 @@ class DataUploadHandler:
                             existing.status = row.get('status', existing.status)
                             existing.description = row.get('description', existing.description)
                             existing.estimated_price = row.get('price', existing.estimated_price)
+                            if assigned_employee:
+                                existing.assigned_employee = assigned_employee
                             existing.save()
                             self.results['updated'] += 1
                             continue
@@ -505,6 +534,7 @@ class DataUploadHandler:
                         status=row.get('status', 'completed'),
                         priority=row.get('priority', 'normal'),
                         estimated_price=row.get('price', service_type.base_price),
+                        assigned_employee=assigned_employee,
                         created_by=self.user,
                         service_date=timezone.make_aware(service_datetime)  # 실제 서비스 실행일
                         # created_at은 현재 시간으로 자동 설정됨

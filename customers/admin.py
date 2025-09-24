@@ -1,7 +1,7 @@
 from django.contrib import admin
 from .models import (
     Customer, Tag, CustomerTag, Vehicle, CustomerVehicle,
-    CustomerCommunication, HappyCall, MarketingCampaign,
+    CustomerCommunication, MarketingCampaign,
     CustomerCampaignHistory, CustomerPointHistory
 )
 
@@ -27,13 +27,6 @@ class CustomerCommunicationInline(admin.TabularInline):
     ordering = ('-communication_date',)
 
 
-class HappyCallInline(admin.TabularInline):
-    model = HappyCall
-    extra = 0
-    fields = ('scheduled_date', 'call_sequence', 'contact_result', 'satisfaction_score')
-    readonly_fields = ('created_at',)
-    ordering = ('-scheduled_date',)
-
 
 class CustomerPointHistoryInline(admin.TabularInline):
     model = CustomerPointHistory
@@ -57,7 +50,7 @@ class CustomerAdmin(admin.ModelAdmin):
     search_fields = ['name', 'phone', 'email', 'company_name']
     readonly_fields = ['created_at', 'updated_at', 'total_service_count', 'total_service_amount']
     inlines = [CustomerTagInline, CustomerVehicleInline, CustomerCommunicationInline, 
-               HappyCallInline, CustomerPointHistoryInline]
+               CustomerPointHistoryInline]
     
     fieldsets = (
         ('기본 정보', {
@@ -169,44 +162,6 @@ class CustomerCommunicationAdmin(admin.ModelAdmin):
         }),
     )
 
-
-@admin.register(HappyCall)
-class HappyCallAdmin(admin.ModelAdmin):
-    list_display = [
-        'customer', 'call_sequence', 'scheduled_date', 'completed_date',
-        'contact_result', 'satisfaction_score', 'is_completed', 'created_by'
-    ]
-    list_filter = [
-        'call_sequence', 'contact_result', 'satisfaction_score',
-        'complaint_exists', 'follow_up_service_needed', 'scheduled_date'
-    ]
-    search_fields = ['customer__name', 'customer__phone', 'notes']
-    readonly_fields = ['created_at']
-    date_hierarchy = 'scheduled_date'
-    
-    fieldsets = (
-        ('기본 정보', {
-            'fields': ('customer', 'service_record_id', 'call_sequence', 'scheduled_date', 'completed_date')
-        }),
-        ('연락 결과', {
-            'fields': ('contact_result', 'satisfaction_score')
-        }),
-        ('불만사항', {
-            'fields': ('complaint_exists', 'complaint_details')
-        }),
-        ('후속 조치', {
-            'fields': ('follow_up_service_needed', 'next_call_scheduled', 'notes')
-        }),
-        ('시스템 정보', {
-            'fields': ('created_by', 'created_at'),
-            'classes': ['collapse']
-        }),
-    )
-    
-    def is_completed(self, obj):
-        return obj.is_completed
-    is_completed.boolean = True
-    is_completed.short_description = '완료여부'
 
 
 @admin.register(MarketingCampaign)

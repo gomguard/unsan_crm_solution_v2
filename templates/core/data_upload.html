@@ -323,12 +323,17 @@
                                         <span class="inline-block px-2 py-1 text-xs bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300 rounded mr-2 mb-1">customer_phone</span>
                                         <span class="inline-block px-2 py-1 text-xs bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300 rounded mr-2 mb-1">service_type</span>
                                         <span class="inline-block px-2 py-1 text-xs bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300 rounded mr-2 mb-1">service_date</span>
+                                        <span class="inline-block px-2 py-1 text-xs bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300 rounded mr-2 mb-1">assigned_employee</span>
                                         <span class="inline-block px-2 py-1 text-xs bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300 rounded mr-2 mb-1">status</span>
                                     </div>
                                     <div class="mt-2 p-2 bg-blue-50 dark:bg-blue-900/20 rounded text-xs">
                                         <strong>service_type 입력 방법:</strong><br>
                                         • ID: 1, 2, 3, 4, 5, 6, 7, 8<br>
-                                        • 또는 서비스명: "엔진오일 교환", "브레이크패드교환", "종합검사", "정기검사", "자동차보험", "운전자보험", "자동차검사", "고객관리"
+                                        • 또는 서비스명: "엔진오일 교환", "브레이크패드교환", "종합검사", "정기검사", "자동차보험", "운전자보험", "자동차검사", "고객관리"<br><br>
+                                        <strong>assigned_employee 입력 방법:</strong><br>
+                                        • User ID: 1, 2, 3...<br>
+                                        • 또는 username: "admin", "employee1"<br>
+                                        • 또는 이름: "홍길동", "김철수"
                                     </div>
                                 </div>
                                 
@@ -511,10 +516,13 @@ document.addEventListener('DOMContentLoaded', function() {
                     data.results.errors
                 );
                 
-                // 잠시 후 페이지 새로고침
+                // 결과를 더 오래 표시한 후 새로고침
+                showFinalResults(data.results);
                 setTimeout(() => {
-                    location.reload();
-                }, 3000);
+                    if (confirm('업로드가 완료되었습니다. 페이지를 새로고침하시겠습니까?')) {
+                        location.reload();
+                    }
+                }, 5000);
             } else {
                 throw new Error(data.error || '업로드 실패');
             }
@@ -575,9 +583,37 @@ document.addEventListener('DOMContentLoaded', function() {
         pollProgress();
     }
     
+    function showFinalResults(results) {
+        // 진행률 애니메이션 멈추기
+        document.querySelector('.animate-spin').style.display = 'none';
+        
+        // 최종 결과 메시지 생성
+        let resultMessage = `업로드 완료!\n`;
+        resultMessage += `• 성공: ${results.success}건\n`;
+        if (results.updated > 0) resultMessage += `• 업데이트: ${results.updated}건\n`;
+        if (results.skipped > 0) resultMessage += `• 건너뜀: ${results.skipped}건\n`;
+        if (results.errors > 0) resultMessage += `• 오류: ${results.errors}건\n`;
+        
+        // 상태 메시지 업데이트 (더 두드러지게)
+        const statusElement = document.getElementById('statusMessage');
+        statusElement.innerHTML = resultMessage.replace(/\n/g, '<br>');
+        statusElement.className = 'text-sm font-semibold text-green-700 dark:text-green-300';
+        
+        // 업로드 버튼 변경
+        uploadButton.disabled = false;
+        uploadButton.className = 'w-full group relative flex items-center justify-center px-6 py-3 text-sm font-medium text-white bg-green-600 border border-green-600 rounded-lg hover:bg-green-700 hover:border-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-all duration-200';
+        uploadButton.innerHTML = `
+            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            업로드 완료!
+        `;
+    }
+    
     function resetUploadForm() {
         uploadInProgress = false;
         uploadButton.disabled = false;
+        uploadButton.className = 'w-full group relative flex items-center justify-center px-6 py-3 text-sm font-medium text-white bg-indigo-600 border border-indigo-600 rounded-lg hover:bg-indigo-700 hover:border-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-200';
         uploadButton.innerHTML = `
             <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
